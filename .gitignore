@@ -1,0 +1,20 @@
+# IDE                                                                                  
+.vscode/                                                                               
+.idea/                                                                                 
+                                                                                        
+# OS                                                                                   
+.DS_Store 
+
+# Claude files
+PROJECT_STATE.md
+.clauderc
+.claude
+CLAUDE_INSTRUCTIONS.md
+CMD.md
+CLAUDE.md
+
+# Docs personal notes
+cmd_doc
+
+# Environment variables
+.env
