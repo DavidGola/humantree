@@ -3,11 +3,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers.skill_trees import router as skill_trees_router
 from app.routers.skills import router as skills_router
 from app.routers.user import router as user_router
+from .database import ENVIRONNMENT
 
 
 app = FastAPI()
 
-origins = ["http://localhost:5173"]
+
+if ENVIRONNMENT == "development":
+    origins = ["http://localhost:5173"]
+else:
+    origins = ["http://localhost"]  # Adjust this for production
 
 app.add_middleware(
     CORSMiddleware,

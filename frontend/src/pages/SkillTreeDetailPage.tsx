@@ -79,9 +79,7 @@ function transformSkillstoGraph(
       padding: "12px 24px",
       fontSize: "15px",
       fontWeight: skill.is_root ? 600 : 400,
-      boxShadow: skill.is_root
-        ? "0 4px 16px rgba(99, 102, 241, 0.35)"
-        : "none",
+      boxShadow: skill.is_root ? "0 4px 16px rgba(99, 102, 241, 0.35)" : "none",
     },
   }));
 
@@ -741,12 +739,14 @@ function SkillTreeDetailPage() {
           onConnect={handleEdgeCreate}
           onReconnect={handleEdgeReconnect}
           onEdgeClick={(event, edge) => {
+            event.preventDefault();
             if (!isEditing) return;
             setSelectedEdge(edge);
           }}
           zoomOnScroll={true}
           zoomOnDoubleClick={false}
           onNodeDoubleClick={(event, node) => {
+            event.preventDefault();
             if (!isEditing) return;
             console.log(node.id);
             const skill: Skill | undefined = skillTree?.skills.find(

@@ -4,7 +4,11 @@ from dotenv import load_dotenv
 
 
 load_dotenv()
-POSTGRES_DATABASE_URL = os.getenv("POSTGRES_DATABASE_URL")
+ENVIRONNMENT = os.getenv("ENVIRONMENT", "development")
+if ENVIRONNMENT == "development":
+    POSTGRES_DATABASE_URL = os.getenv("POSTGRES_DATABASE_URL_DEV")
+else:
+    POSTGRES_DATABASE_URL = os.getenv("POSTGRES_DATABASE_URL")
 
 engine = create_async_engine(POSTGRES_DATABASE_URL, echo=True)
 async_session = async_sessionmaker(engine, expire_on_commit=False)

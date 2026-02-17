@@ -4,7 +4,7 @@ import { toast } from "react-hot-toast";
 
 const AuthContext = createContext({
   isAuthenticated: false,
-  login: (e: React.FormEvent, mail: string, password: string) => {},
+  login: (_e: React.FormEvent, _mail: string, _password: string) => {},
   logout: () => {},
   username: "",
 });
