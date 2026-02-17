@@ -3,16 +3,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers.skill_trees import router as skill_trees_router
 from app.routers.skills import router as skills_router
 from app.routers.user import router as user_router
-from .database import ENVIRONNMENT
+from dotenv import load_dotenv
+import os
 
 
 app = FastAPI()
-
-
-if ENVIRONNMENT == "development":
-    origins = ["http://localhost:5173"]
+load_dotenv()
+if os.getenv("ORIGINS"):
+    origins = os.getenv("ORIGINS", "").split(",")
 else:
-    origins = ["http://localhost"]  # Adjust this for production
+    raise ValueError("ORIGINS environment variable is not set or empty")
 
 app.add_middleware(
     CORSMiddleware,
