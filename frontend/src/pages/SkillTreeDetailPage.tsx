@@ -187,10 +187,6 @@ function CheckSkillNode(props: any) {
 
 /* Custom node: skill name + styled checkbox + React Flow handles */
 function NoCheckSkillNode(props: any) {
-  const isChecked =
-    props.data.userDetailSkill?.skill_ids.includes(props.data.skillId) || false;
-  const isRoot = props.data.isRoot || false;
-
   return (
     <>
       <Handle
