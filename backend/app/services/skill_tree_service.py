@@ -6,6 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.models.skill_tree import SkillTree
+from app.models.user_favorite_trees import UserFavoriteTrees
+from app.models.user_check_skill import UserCheckSkill
 from fastapi import HTTPException
 
 from app.schemas.skill_tree import (
@@ -22,6 +24,9 @@ from app.services.skill_service import update_skill, delete_skill
 from app.models.skill import Skill
 
 from sqlalchemy.orm import selectinload
+from sqlalchemy import text
+
+from datetime import datetime
 
 
 async def get_all(db: AsyncSession) -> list[SkillTreeSimpleSchema]:
@@ -45,6 +50,73 @@ async def get_all(db: AsyncSession) -> list[SkillTreeSimpleSchema]:
 
     # Étape 4: Convertir les objets ORM en schémas Pydantic
     return [SkillTreeSimpleSchema.model_validate(st) for st in list_skill_trees]
+
+
+async def get_trendings(db: AsyncSession, timestamp="w") -> list[SkillTreeSimpleSchema]:
+    """
+    Récupère les skill_trees les plus populaires de la semaine. Les arbres tendances sont déterminés par le nombre de fois qu'ils ont été ajoutés aux favoris par les utilisateurs au cours des 7 derniers jours + par le nombre d'utilisateurs qui ont coché au moins une compétence de l'arbre au cours des 7 derniers jours.
+
+    Args:
+        db: Session de base de données async
+
+    Returns:
+        Liste de SkillTreeListSchema
+    """
+    timestamp_mapping = {
+        "w": "7 days",
+        "d": "1 day",
+        "m": "30 days",
+    }
+    stmt = text(
+        f"""SELECT skill_trees.id, skill_trees.name, skill_trees.description,    
+         skill_trees.creator_username, skill_trees.created_at,  SUM(nb_users) AS score                         
+  FROM (           
+      SELECT skill_tree_id, COUNT(DISTINCT user_id) AS nb_users        
+      FROM user_favorite_trees                                         
+      WHERE created_at >= NOW() - INTERVAL '{timestamp_mapping.get(timestamp, "7 days")}'                    
+      GROUP BY skill_tree_id                                  
+                                                                       
+      UNION ALL                                                        
+
+      SELECT skills.skill_tree_id, COUNT(DISTINCT
+  user_check_skill.user_id) AS nb_users
+      FROM user_check_skill
+      INNER JOIN skills ON user_check_skill.skill_id = skills.id
+      WHERE user_check_skill.created_at >= NOW() - INTERVAL '{timestamp_mapping.get(timestamp, "7 days")}'
+      GROUP BY skills.skill_tree_id
+  ) AS combined
+  INNER JOIN skill_trees ON combined.skill_tree_id = skill_trees.id
+  GROUP BY skill_trees.id
+  ORDER BY score DESC ;
+        """
+    )
+    result = await db.execute(stmt)
+    skill_trees = result.fetchall()
+    return [
+        SkillTreeSimpleSchema(
+            id=st.id,
+            name=st.name,
+            description=st.description,
+            creator_username=st.creator_username,
+            created_at=st.created_at,
+        )
+        for st in skill_trees
+    ]
+
+
+async def get_user_favorite_trees(
+    db: AsyncSession, user_id: int
+) -> list[SkillTreeSimpleSchema]:
+    """Récupère la liste des IDs de skill trees favoris d'un utilisateur."""
+    stmt = (
+        select(SkillTree)
+        .select_from(UserFavoriteTrees)
+        .where(UserFavoriteTrees.user_id == user_id)
+        .join(SkillTree, UserFavoriteTrees.skill_tree_id == SkillTree.id)
+    )
+    result = await db.execute(stmt)
+    skill_trees = result.scalars().all()
+    return [SkillTreeSimpleSchema.model_validate(st) for st in skill_trees]
 
 
 async def get_by_id(

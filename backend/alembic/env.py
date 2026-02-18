@@ -7,6 +7,7 @@ from app.models.skill_tree import SkillTree
 from app.models.skill_dependencies import SkillDependency
 from app.models.user import User
 from app.models.user_check_skill import UserCheckSkill
+from app.models.user_favorite_trees import UserFavoriteTrees
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection

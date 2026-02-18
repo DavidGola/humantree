@@ -1,6 +1,7 @@
 import SkillTreeListPage from "./pages/SkillTreeListPage";
 import SkillTreeDetailPage from "./pages/SkillTreeDetailPage";
 import UserProfilePage from "./pages/UserProfilePage";
+import RegisterPage from "./pages/RegisterPage";
 import { Routes, Route } from "react-router-dom";
 import { Navbar } from "./components/Navbar";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -31,6 +32,8 @@ function MainRoutes() {
       <Route path="/" element={<SkillTreeListPage />} />
       <Route path="/tree/:id" element={<SkillTreeDetailPage />} />
       <Route path="/user/:username" element={<UserProfilePage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="*" element={<div className="p-8">Page non trouvée</div>} />
     </Routes>
   );
 }

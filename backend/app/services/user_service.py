@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy import select, delete
 from app.models.user_check_skill import UserCheckSkill
+from app.models.user_favorite_trees import UserFavoriteTrees
 from fastapi import HTTPException, logger
 
 from app.schemas.user import (
@@ -13,6 +14,7 @@ from app.schemas.user import (
     UserLoginSchema,
     UserCheckSkillsSchema,
     UserPublicSchema,
+    UserFavoriteTreesSchema,
 )
 from app.models.user import User
 
@@ -25,7 +27,10 @@ async def register_user(db: AsyncSession, user: UserCreateSchema) -> UserSchema:
     # Vérifier si l'email existe déjà
 
     if await check_user_email(db, user.email):
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=409, detail="Email already registered")
+
+    if await check_user_username(db, user.username):
+        raise HTTPException(status_code=409, detail="Username already taken")
 
     new_user = User(
         username=user.username,
@@ -65,7 +70,7 @@ async def get_user_skills_checked(
     stmt = select(UserCheckSkill.skill_id).where(UserCheckSkill.user_id == user_id)
     result = await db.execute(stmt)
     skill_ids = result.scalars().all()
-    return UserCheckSkillsSchema(user_id=user_id, skill_ids=skill_ids)
+    return UserCheckSkillsSchema(user_id=user_id, skill_ids=list(skill_ids))
 
 
 async def add_user_skill_checked(db: AsyncSession, user_id: int, skill_id: int) -> None:
@@ -97,12 +102,14 @@ async def update_user(
         return None
 
     if data.username is not None:
+        if await check_user_username(db, data.username):
+            raise HTTPException(status_code=409, detail="Username already taken")
         user.username = data.username
     if data.email is not None:
         # Vérifier si le nouvel email existe déjà pour un autre utilisateur
 
         if await check_user_email(db, data.email):
-            raise HTTPException(status_code=400, detail="Email already registered")
+            raise HTTPException(status_code=409, detail="Email already registered")
         user.email = data.email
     if data.password is not None:
         user.password_hash = hashpw(data.password.encode("utf-8"), gensalt()).decode(
@@ -118,6 +125,14 @@ async def update_user(
 async def check_user_email(db: AsyncSession, email: str) -> bool:
     """Vérifie si un email est conforme et s'il est déjà enregistré dans la base de données."""
     stmt = select(User).where(User.email == email)
+    result = await db.execute(stmt)
+    existing_user = result.scalar_one_or_none()
+    return existing_user is not None
+
+
+async def check_user_username(db: AsyncSession, username: str) -> bool:
+    """Vérifie si un nom d'utilisateur est déjà enregistré dans la base de données."""
+    stmt = select(User).where(User.username == username)
     result = await db.execute(stmt)
     existing_user = result.scalar_one_or_none()
     return existing_user is not None

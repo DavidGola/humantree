@@ -16,4 +16,4 @@ class UserCheckSkill(BaseModel):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     skill_id: Mapped[int] = mapped_column(ForeignKey("skills.id", ondelete="CASCADE"))
-    created_at: Mapped[datetime | None] = mapped_column(server_default="now()")
+    created_at: Mapped[datetime] = mapped_column(server_default="now()")

@@ -39,6 +39,7 @@ from app.schemas.user import (
     UserUpdateSchema,
     UserOneSkillCheckedSchema,
     UserPublicSchema,
+    UserFavoriteTreesSchema,
 )
 from app.schemas.auth import JWTTokenSchema
 

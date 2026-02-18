@@ -64,3 +64,10 @@ class UserCheckSkillsSchema(BaseModel):
 
     user_id: int
     skill_ids: list[int] = Field(default=[])
+
+
+class UserFavoriteTreesSchema(BaseModel):
+    """Schema representing a user's favorite skill trees."""
+
+    user_id: int
+    skill_tree_ids: list[int] = Field(default=[])

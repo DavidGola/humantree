@@ -11,9 +11,11 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "react-hot-toast";
 import type { UserDetailSkill } from "../types/user";
+import { useFavorites } from "../hooks/useFavorites";
 
 const nodeTypes = {
   checkSkill: CheckSkillNode,
+  noCheckSkill: NoCheckSkillNode,
 };
 
 function layoutGraph(nodes: Node[], edges: Edge[]): Node[] {
@@ -49,6 +51,7 @@ function returnNewIdSkillNegative(skillTree: SkillTreeDetail): number {
 function transformSkillstoGraph(
   skillTree: SkillTreeDetail,
   isDarkMode: boolean,
+  isEditing: boolean,
   userDetailSkill: UserDetailSkill | null,
   handleCheckSkill: (skillId: number, isChecked: boolean) => void,
 ) {
@@ -61,7 +64,7 @@ function transformSkillstoGraph(
       userDetailSkill,
       handleCheckSkill,
     },
-    type: "checkSkill",
+    type: isEditing ? "noCheckSkill" : "checkSkill",
     position: { x: 0, y: 0 }, // Position par défaut, à ajuster avec un algorithme de layout
     style: {
       background: skill.is_root
@@ -182,6 +185,34 @@ function CheckSkillNode(props: any) {
   );
 }
 
+/* Custom node: skill name + styled checkbox + React Flow handles */
+function NoCheckSkillNode(props: any) {
+  const isChecked =
+    props.data.userDetailSkill?.skill_ids.includes(props.data.skillId) || false;
+  const isRoot = props.data.isRoot || false;
+
+  return (
+    <>
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ background: "#94a3b8", width: 8, height: 8, border: "none" }}
+      />
+
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {/* Skill name */}
+        <span style={{ flex: 1, lineHeight: 1.4 }}>{props.data.label}</span>
+      </div>
+
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{ background: "#94a3b8", width: 8, height: 8, border: "none" }}
+      />
+    </>
+  );
+}
+
 function SkillTreeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [isLoading, setIsLoading] = useState(true);
@@ -213,16 +244,18 @@ function SkillTreeDetailPage() {
   const { isAuthenticated } = useAuth();
 
   const [isModalConfirmExitOpen, setIsModalConfirmExitOpen] = useState(false);
+  const { favoriteTrees, handleFavorite } = useFavorites();
 
   const graphData = useMemo(() => {
     if (!skillTree) return { nodes: [], edges: [] };
     return transformSkillstoGraph(
       skillTree,
       isDarkMode,
+      isEditing,
       userDetailSkill,
       handleCheckSkill,
     );
-  }, [skillTree, isDarkMode, userDetailSkill]);
+  }, [skillTree, isDarkMode, userDetailSkill, isEditing]);
 
   const isValidConnection = useCallback(
     (connection: { source: string; target: string }) => {
@@ -618,6 +651,23 @@ function SkillTreeDetailPage() {
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                   {skillTree?.name}
                 </h1>
+                {!isEditing && (
+                  <button
+                    className={`text-2xl transition-all duration-200 hover:scale-110 ${
+                      favoriteTrees.includes(skillTree.id)
+                        ? "text-yellow-400 hover:text-yellow-500"
+                        : "text-gray-400 dark:text-slate-400 hover:text-yellow-400 dark:hover:text-yellow-400"
+                    }`}
+                    onClick={() => handleFavorite(skillTree.id)}
+                    aria-label={
+                      favoriteTrees.includes(skillTree.id)
+                        ? "Retirer des favoris"
+                        : "Ajouter aux favoris"
+                    }
+                  >
+                    {favoriteTrees.includes(skillTree.id) ? "\u2605" : "\u2606"}
+                  </button>
+                )}
                 {isEditing && isAuthorizedToEdit() && (
                   <button
                     onClick={() => setIsEditingTitle(true)}

@@ -2,28 +2,74 @@ import { useState, useEffect } from "react";
 import type { SkillTreeSimple } from "../types/skillTree";
 import axiosInst from "../api/client";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import toast from "react-hot-toast";
+
+import { useFavorites } from "../hooks/useFavorites";
 
 function SkillTreeListPage() {
   const [skillTrees, setSkillTrees] = useState<SkillTreeSimple[]>([]);
+  const { favoriteTrees, handleFavorite } = useFavorites();
 
   const [isModalCreateOpen, setIsModalCreateOpen] = useState(false);
 
   const [newTreeName, setNewTreeName] = useState("");
   const [newTreeDescription, setNewTreeDescription] = useState("");
 
+  const [activeTab, setActiveTab] = useState("all"); // "my-trees" ou "trending"
+
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     // Cette fonction s'exécute au montage du composant
-    axiosInst
-      .get<SkillTreeSimple[]>("/skill-trees/")
-      .then((response) => {
-        setSkillTrees(response.data);
-      })
-      .catch((error) => {
-        console.error("Erreur:", error);
-      });
-  }, []);
+    if (activeTab === "trending") {
+      axiosInst
+        .get<SkillTreeSimple[]>("/skill-trees/trendings/")
+        .then((response) => {
+          setSkillTrees(response.data);
+        })
+        .catch((error) => {
+          console.error("Erreur:", error);
+        });
+    } else if (activeTab === "myTrees" && isAuthenticated) {
+      axiosInst
+        .get<SkillTreeSimple[]>("/skill-trees/my-skill-trees/")
+        .then((response) => {
+          setSkillTrees(response.data);
+        })
+        .catch((error) => {
+          console.error("Erreur:", error);
+        });
+    } else if (activeTab === "myFavoriteTrees" && isAuthenticated) {
+      axiosInst
+        .get<SkillTreeSimple[]>("/skill-trees/my-favorite-skill-trees/")
+        .then((response) => {
+          setSkillTrees(response.data);
+        })
+        .catch((error) => {
+          console.error("Erreur:", error);
+        });
+    } else {
+      // Par défaut, on affiche tous les skill trees
+      axiosInst
+        .get<SkillTreeSimple[]>("/skill-trees/")
+        .then((response) => {
+          setSkillTrees(response.data);
+        })
+        .catch((error) => {
+          console.error("Erreur:", error);
+        });
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "myFavoriteTrees" && isAuthenticated) {
+      setSkillTrees((prev) =>
+        prev.filter((tree) => favoriteTrees.includes(tree.id)),
+      );
+    }
+  }, [favoriteTrees, activeTab, isAuthenticated]);
 
   const handleCreateTree = (e: React.FormEvent) => {
     e.preventDefault(); // Empêche le rechargement de la page
@@ -53,14 +99,65 @@ function SkillTreeListPage() {
 
   return (
     <div className="min-h-screen p-8 bg-gray-100 dark:bg-slate-900">
+      <nav className="mb-8 flex justify-center border-b border-gray-200 dark:border-slate-700">
+        <button
+          className={`px-6 py-4 text-base font-medium transition-all duration-200 relative ${
+            activeTab === "all"
+              ? "text-blue-600 dark:text-blue-400 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600 dark:after:bg-blue-400"
+              : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/50"
+          }`}
+          onClick={() => setActiveTab("all")}
+        >
+          Tous les arbres
+        </button>
+        <button
+          className={`px-6 py-4 text-base font-medium transition-all duration-200 relative ${
+            activeTab === "trending"
+              ? "text-blue-600 dark:text-blue-400 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600 dark:after:bg-blue-400"
+              : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/50"
+          }`}
+          onClick={() => setActiveTab("trending")}
+        >
+          Tendances
+        </button>
+        {isAuthenticated && (
+          <>
+            <button
+              className={`px-6 py-4 text-base font-medium transition-all duration-200 relative ${
+                activeTab === "myTrees"
+                  ? "text-blue-600 dark:text-blue-400 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600 dark:after:bg-blue-400"
+                  : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/50"
+              }`}
+              onClick={() => setActiveTab("myTrees")}
+            >
+              Mes arbres
+            </button>
+            <button
+              className={`px-6 py-4 text-base font-medium transition-all duration-200 relative ${
+                activeTab === "myFavoriteTrees"
+                  ? "text-blue-600 dark:text-blue-400 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600 dark:after:bg-blue-400"
+                  : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/50"
+              }`}
+              onClick={() => setActiveTab("myFavoriteTrees")}
+            >
+              Mes favoris
+            </button>
+          </>
+        )}
+      </nav>
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
-            Mes arbres de compétences
-          </h1>
+        <div className="flex justify-end mb-8">
           <button
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold w-14 h-14 rounded-full text-3xl shadow-lg hover:shadow-xl transition flex items-center justify-center leading-none pb-0.5"
-            onClick={() => setIsModalCreateOpen(true)}
+            onClick={() => {
+              if (isAuthenticated) {
+                setIsModalCreateOpen(true);
+              } else {
+                toast.error(
+                  "Vous devez être connecté pour créer un arbre de compétences.",
+                );
+              }
+            }}
           >
             +
           </button>
@@ -70,7 +167,7 @@ function SkillTreeListPage() {
           {skillTrees.map((tree) => (
             <div
               key={tree.id}
-              className="rounded-lg p-6 shadow-md hover:shadow-xl cursor-pointer transition-shadow duration-300 bg-white dark:bg-slate-800"
+              className="relative rounded-lg p-6 shadow-md hover:shadow-xl cursor-pointer transition-shadow duration-300 bg-white dark:bg-slate-800"
               onDoubleClick={() => handleTreeDoubleClick(tree.id)}
             >
               <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
@@ -84,6 +181,23 @@ function SkillTreeListPage() {
                 Créé par {tree.creator_username} le{" "}
                 {new Date(tree.created_at).toLocaleDateString()}
               </p>
+              <button
+                className={`absolute top-4 right-4 text-2xl transition-all duration-200 hover:scale-110 ${
+                  favoriteTrees.includes(tree.id)
+                    ? "text-yellow-400 hover:text-yellow-500"
+                    : "text-gray-400 dark:text-slate-400 hover:text-yellow-400 dark:hover:text-yellow-400"
+                }`}
+                onClick={() => {
+                  handleFavorite(tree.id);
+                }}
+                aria-label={
+                  favoriteTrees.includes(tree.id)
+                    ? "Retirer des favoris"
+                    : "Ajouter aux favoris"
+                }
+              >
+                {favoriteTrees.includes(tree.id) ? "\u2605" : "\u2606"}
+              </button>
             </div>
           ))}
         </div>
