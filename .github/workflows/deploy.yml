@@ -1,0 +1,33 @@
+name: deploy_to_vps
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up SSH
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          username: ${{ secrets.SSH_USER }}
+          host: ${{ secrets.SSH_HOST }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /srv/humantree
+            git pull origin main
+            docker compose up -d --build
+            for i in {1..10}; do
+              echo "Checking if the application is up... (attempt $i)"
+              if curl -X GET http://localhost:8000/health -f && curl -X GET http://localhost/ -f; then
+                echo "Application is up and running!"
+                exit 0
+              else
+                echo "Application is not responding yet. Retrying in 5 seconds..."
+                sleep 5
+              fi
+            done
+            echo "Application failed to start after 10 attempts."
+            exit 1
