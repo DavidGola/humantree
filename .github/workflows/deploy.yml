@@ -1,4 +1,4 @@
-name: deploy_to_vps
+name: test_and_deploy
 
 on:
   push:
@@ -6,10 +6,71 @@ on:
       - main
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: humantree_user
+          POSTGRES_PASSWORD: tree94
+          POSTGRES_DB: humantree_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U humantree_user -d humantree_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ===== Backend tests =====
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx
+
+      - name: Run backend tests
+        env:
+          TEST_DATABASE_URL: postgresql+asyncpg://humantree_user:tree94@localhost:5432/humantree_test
+          SECRET_KEY: test-secret-key-for-ci
+          ENVIRONMENT: development
+          ORIGINS: http://localhost
+        run: |
+          cd backend
+          python -m pytest tests/ -v
+
+      # ===== Frontend tests =====
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run frontend tests
+        run: |
+          cd frontend
+          npx vitest run
+
   deploy:
     runs-on: ubuntu-latest
+    needs: test
     steps:
-      - name: Set up SSH
+      - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.2.5
         with:
           username: ${{ secrets.SSH_USER }}
