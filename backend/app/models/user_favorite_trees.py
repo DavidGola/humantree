@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import CheckConstraint, ForeignKey, PrimaryKeyConstraint
+from sqlalchemy import CheckConstraint, ForeignKey, PrimaryKeyConstraint, func
 from app.models.base_model import BaseModel
 from datetime import datetime
 
@@ -17,4 +17,4 @@ class UserFavoriteTrees(BaseModel):
     skill_tree_id: Mapped[int] = mapped_column(
         ForeignKey("skill_trees.id", ondelete="CASCADE"), primary_key=True
     )
-    created_at: Mapped[datetime] = mapped_column(server_default="now()")
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())

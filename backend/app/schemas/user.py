@@ -22,7 +22,7 @@ class UserPublicSchema(BaseModel):
 class UserCreateSchema(BaseModel):
     """Schema for creating a new user."""
 
-    username: str
+    username: str = Field(..., min_length=3, max_length=30, pattern=r"^[a-zA-Z0-9_-]+$")
     email: str = Field(
         ..., pattern=r"^[\w\.-]+@[\w\.-]+\.\w+$"
     )  # Validation de l'email

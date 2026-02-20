@@ -290,7 +290,7 @@ async def save_skill_tree_endpoint(
         )
     skill_tree = await save_skill_tree(db, data)
     if not skill_tree:
-        raise HTTPException(status_code=501, detail="Skill tree could not be saved")
+        raise HTTPException(status_code=500, detail="Skill tree could not be saved")
     return skill_tree
 
 

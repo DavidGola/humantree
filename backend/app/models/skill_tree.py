@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Text, ForeignKey
+from sqlalchemy import String, Text, ForeignKey, text
 from datetime import datetime
 from app.models.base_model import BaseModel
 from .skill import Skill
@@ -15,6 +15,8 @@ class SkillTree(BaseModel):
     creator_username: Mapped[str] = mapped_column(
         ForeignKey("users.username", ondelete="CASCADE")
     )
-    created_at: Mapped[datetime] = mapped_column(server_default="CURRENT_TIMESTAMP")
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=text("CURRENT_TIMESTAMP")
+    )
 
     skills: Mapped[list["Skill"]] = relationship(cascade="all, delete-orphan")

@@ -21,9 +21,6 @@ class SkillSchema(BaseModel):
         unlock_ids = [
             skill.id for skill in v
         ]  # Assuming 'v' is a list of Skill model instances
-        print(
-            f"Validating unlock_ids for skill: {unlock_ids}"
-        )  # Debug print to check data
 
         return unlock_ids
 
@@ -42,7 +39,7 @@ class SkillSimpleSchema(BaseModel):
 class SkillCreateSchema(BaseModel):
     """Schema for creating a new skill."""
 
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
     description: str | None = None
     skill_tree_id: int
 
@@ -60,7 +57,7 @@ class SkillSaveSchema(BaseModel):
     """Schema for saving a skill with its dependencies."""
 
     id: int
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
     description: str | None = None
     is_root: bool
     unlock_ids: list[int] = Field(default=[])

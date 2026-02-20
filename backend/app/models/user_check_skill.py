@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import ForeignKey, UniqueConstraint
+from sqlalchemy import ForeignKey, UniqueConstraint, Index, func
 from datetime import datetime
 from app.models.base_model import BaseModel
 
@@ -12,8 +12,9 @@ class UserCheckSkill(BaseModel):
         UniqueConstraint(
             "user_id", "skill_id", name="user_check_skill_user_id_skill_id_key"
         ),
+        Index("ix_user_check_skill_skill_id", "skill_id"),
     )
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     skill_id: Mapped[int] = mapped_column(ForeignKey("skills.id", ondelete="CASCADE"))
-    created_at: Mapped[datetime] = mapped_column(server_default="now()")
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())

@@ -3,6 +3,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy import select, delete
+from sqlalchemy.exc import IntegrityError
 from app.models.user_check_skill import UserCheckSkill
 from app.models.user_favorite_trees import UserFavoriteTrees
 from fastapi import HTTPException, logger
@@ -75,9 +76,13 @@ async def get_user_skills_checked(
 
 async def add_user_skill_checked(db: AsyncSession, user_id: int, skill_id: int) -> None:
     """Ajoute une compétence acquise pour un utilisateur."""
-    new_check = UserCheckSkill(user_id=user_id, skill_id=skill_id)
-    db.add(new_check)
-    await db.commit()
+    try:
+        new_check = UserCheckSkill(user_id=user_id, skill_id=skill_id)
+        db.add(new_check)
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Skill already checked")
 
 
 async def remove_user_skill_checked(

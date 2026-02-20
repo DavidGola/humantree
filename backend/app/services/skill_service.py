@@ -51,8 +51,6 @@ async def create_skill(db: AsyncSession, data: SkillCreateSchema) -> SkillSimple
     db.add(new_skill)
 
     await db.flush()
-    # await create_skill_dependencies(db, new_skill.id, data.unlock_ids)
-
     await db.commit()
     await db.refresh(new_skill)
 
@@ -112,9 +110,6 @@ async def create_skill_dependencies(
 
 async def delete_all_dependencies_for_skill(db: AsyncSession, skill_id: int) -> bool:
     """Supprime toutes les dépendances d'un skill de la base de données."""
-    stmt = select(SkillDependency).where(SkillDependency.skill_id == skill_id)
-    result = await db.execute(stmt)
-    dependencies = result.scalars().all()
-    for dep in dependencies:
-        await db.delete(dep)
+    stmt = delete(SkillDependency).where(SkillDependency.skill_id == skill_id)
+    await db.execute(stmt)
     return True

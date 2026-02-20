@@ -158,7 +158,7 @@ async def create_skill_tree(
     try:
         await db.commit()
     except IntegrityError as e:
-        print(f"IntegrityError: {e}")  # Log de l'erreur pour le debug
+        await db.rollback()
         raise HTTPException(
             status_code=409,
             detail="Error creating skill tree: possible duplicate or invalid data",

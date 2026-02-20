@@ -9,3 +9,4 @@ class JWTTokenSchema(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int  # Durée de validité du token en secondes
+    refresh_token: str

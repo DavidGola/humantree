@@ -5,9 +5,12 @@
 # ========== IMPORTS ==========
 
 # FastAPI core
+
 from fastapi import APIRouter, Depends
 from fastapi import HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import Cookie
+from fastapi.responses import JSONResponse
 
 # SQLAlchemy
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,7 +31,11 @@ from app.services.user_service import (
     update_user,
 )
 
-from app.services.auth_service import create_jwt_token, get_current_user
+from app.services.auth_service import (
+    create_jwt_token,
+    get_current_user,
+    refresh_jwt_token,
+)
 
 # Schemas
 from app.schemas.user import (
@@ -77,7 +84,6 @@ async def register(
 
 @router.post(
     "/login",
-    response_model=JWTTokenSchema,
     summary="Authenticate user and get JWT token",
     description="Authenticate a user with email and password, and receive a JWT token for future requests",
 )
@@ -94,13 +100,70 @@ async def login(
     Returns:
         Un token JWT si l'authentification est réussie, sinon une erreur 401
     """
+
     user_login = UserLoginSchema(
         email_or_username=data.username, password=data.password
     )
     user = await authenticate_user(db, user_login)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    return create_jwt_token(user.id, user.username)
+
+    jwt_token = await create_jwt_token(db, user.id, user.username)
+    response = JSONResponse(
+        content={
+            "message": "Login successful",
+            "access_token": jwt_token.access_token,
+            "token_type": jwt_token.token_type,
+            "expires_in": jwt_token.expires_in,
+            "username": jwt_token.username,
+        }
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=jwt_token.refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="Strict",
+        max_age=7 * 24 * 60 * 60,  # 7 jours
+    )
+    return response
+
+
+@router.post(
+    "/refresh",
+    summary="Refresh JWT token",
+    description="Generate a new JWT token using a valid refresh token",
+)
+async def refresh_token(
+    refresh_token: str = Cookie(
+        ..., description="Refresh token stored in a secure cookie"
+    ),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Endpoint pour rafraîchir un token JWT à partir d'un token de rafraîchissement.
+    Args:
+        refresh_token: Token de rafraîchissement extrait d'un cookie sécurisé"""
+
+    new_refresh_token = await refresh_jwt_token(db, refresh_token)
+    response = JSONResponse(
+        content={
+            "message": "Token refreshed successfully",
+            "access_token": new_refresh_token.access_token,
+            "token_type": new_refresh_token.token_type,
+            "expires_in": new_refresh_token.expires_in,
+            "username": new_refresh_token.username,
+        }
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token.refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="Strict",
+        max_age=7 * 24 * 60 * 60,  # 7 jours
+    )
+    return response
 
 
 @router.get(

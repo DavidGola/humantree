@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Text, ForeignKey, UniqueConstraint, Index
+from sqlalchemy import String, Text, ForeignKey, UniqueConstraint, Index, func, text
 from datetime import datetime
 from app.models.base_model import BaseModel
 from .skill_dependencies import SkillDependency
@@ -26,8 +26,8 @@ class Skill(BaseModel):
     skill_tree_id: Mapped[int] = mapped_column(
         ForeignKey("skill_trees.id", ondelete="CASCADE")
     )
-    is_root: Mapped[bool] = mapped_column(default=False, server_default="false")
-    created_at: Mapped[datetime] = mapped_column(server_default="CURRENT_TIMESTAMP")
+    is_root: Mapped[bool] = mapped_column(default=False, server_default=text("false"))
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     # Relationships
     unlocks: Mapped[list["Skill"]] = relationship(

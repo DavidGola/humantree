@@ -18,13 +18,13 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 
 app.include_router(skill_trees_router)
-app.include_router(skills_router)
+# app.include_router(skills_router)
 app.include_router(user_router)
 
 

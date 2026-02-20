@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, Text
+from sqlalchemy import String, Text, func
 from datetime import datetime
 from app.models.base_model import BaseModel
 
@@ -12,4 +12,4 @@ class User(BaseModel):
     username: Mapped[str] = mapped_column(String(30), unique=True)
     email: Mapped[str] = mapped_column(String(254), unique=True)
     password_hash: Mapped[str] = mapped_column(Text)
-    created_at: Mapped[datetime | None] = mapped_column(server_default="now()")
+    created_at: Mapped[datetime | None] = mapped_column(server_default=func.now())
