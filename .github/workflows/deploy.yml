@@ -77,6 +77,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           key: ${{ secrets.SSH_KEY }}
           script: |
+            git config --global --add safe.directory /srv/humantree
             cd /srv/humantree
             git pull origin main
             docker compose up -d --build
