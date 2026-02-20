@@ -6,12 +6,14 @@ from dotenv import load_dotenv
 load_dotenv()
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
-if ENVIRONMENT != "test":
-    if ENVIRONMENT == "development":
-        POSTGRES_DATABASE_URL = os.getenv("POSTGRES_DATABASE_URL_DEV")
-    else:
-        POSTGRES_DATABASE_URL = os.getenv("POSTGRES_DATABASE_URL")
+if ENVIRONMENT == "development":
+    POSTGRES_DATABASE_URL = os.getenv("POSTGRES_DATABASE_URL_DEV")
+elif ENVIRONMENT == "test":
+    POSTGRES_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
+else:
+    POSTGRES_DATABASE_URL = os.getenv("POSTGRES_DATABASE_URL")
 
+if ENVIRONMENT != "test":
     if not POSTGRES_DATABASE_URL:
         raise ValueError("POSTGRES_DATABASE_URL is not set in the environment variables")
 
