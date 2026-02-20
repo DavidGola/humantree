@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import axiosInst from "../api/client";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
+import { userApi } from "../api/userApi";
 
 function RegisterPage() {
   const [username, setUsername] = useState("");
@@ -62,15 +62,10 @@ function RegisterPage() {
       setErrors({ password: true, confirmPassword: true });
       return;
     }
-    axiosInst
-      .post("/users/register/", {
-        username: u,
-        email: em,
-        password,
-      })
-      .then((response) => {
+    userApi
+      .register(u, em, password)
+      .then(() => {
         setErrors({});
-        console.log("Inscription réussie:", response.data);
         toast.success(
           "Inscription réussie. Vous pouvez maintenant vous connecter.",
         );
@@ -81,7 +76,6 @@ function RegisterPage() {
         navigate("/");
       })
       .catch((error) => {
-        console.error("Erreur lors de l'inscription:", error);
         let errorMessage = "Échec de l'inscription. Veuillez réessayer.";
         if (error.response?.status === 409) {
           if (error.response.data.detail === "Email already registered") {
@@ -112,7 +106,7 @@ function RegisterPage() {
       navigate("/");
       toast.error("Vous êtes connecté.", { icon: "⚠" });
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-slate-900">

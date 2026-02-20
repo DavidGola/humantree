@@ -1,27 +1,20 @@
-import { useState, useEffect } from "react";
-import type { SkillTreeSimple } from "../types/skillTree";
-import axiosInst from "../api/client";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { skillTreeApi } from "../api/skillTreeApi";
 
 export function useFavorites() {
-  const [favoriteTrees, setFavoriteTrees] = useState<number[]>([]);
   const { isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      axiosInst
-        .get<SkillTreeSimple[]>("/skill-trees/my-favorite-skill-trees/")
-        .then((response) => {
-          setFavoriteTrees(response.data.map((tree) => tree.id));
-        })
-        .catch((error) => {
-          console.error("Erreur:", error);
-        });
-    } else {
-      setFavoriteTrees([]);
-    }
-  }, [isAuthenticated]);
+  const { data: favoriteTrees = [] } = useQuery({
+    queryKey: ["favorites", isAuthenticated],
+    queryFn: () =>
+      skillTreeApi
+        .getMyFavorites()
+        .then((trees) => trees.map((tree) => tree.id)),
+    enabled: isAuthenticated,
+  });
 
   const handleFavorite = (treeId: number) => {
     if (!isAuthenticated) {
@@ -30,19 +23,17 @@ export function useFavorites() {
     }
     const isFavorite = favoriteTrees.includes(treeId);
     const request = isFavorite
-      ? axiosInst.delete(`/skill-trees/favorite/${treeId}`)
-      : axiosInst.post(`/skill-trees/favorite/${treeId}`);
+      ? skillTreeApi.removeFavorite(treeId)
+      : skillTreeApi.addFavorite(treeId);
     request
       .then(() => {
-        setFavoriteTrees((prev) =>
-          isFavorite ? prev.filter((id) => id !== treeId) : [...prev, treeId],
-        );
+        queryClient.invalidateQueries({ queryKey: ["favorites"] });
+        queryClient.invalidateQueries({ queryKey: ["skillTrees"] });
       })
-      .catch((error) => {
-        console.error("Erreur lors de la mise à jour des favoris:", error);
+      .catch(() => {
         toast.error("Une erreur est survenue. Veuillez réessayer.");
       });
   };
 
-  return { favoriteTrees, setFavoriteTrees, handleFavorite };
+  return { favoriteTrees, handleFavorite };
 }

@@ -6,11 +6,21 @@ const ThemeContext = createContext({
 });
 
 export function useTheme() {
-  return useContext(ThemeContext);
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error("useTheme must be used within ThemeProvider");
+  }
+  return context;
 }
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    try {
+      return localStorage.getItem("theme") === "dark";
+    } catch {
+      return false;
+    }
+  });
 
   const toggleDarkMode = () => {
     setIsDarkMode((prev) => !prev);
@@ -21,6 +31,11 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
+    }
+    try {
+      localStorage.setItem("theme", isDarkMode ? "dark" : "light");
+    } catch {
+      // Quota exceeded ou localStorage indisponible
     }
   }, [isDarkMode]);
 

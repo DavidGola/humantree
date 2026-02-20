@@ -1,44 +1,20 @@
-import type { User } from "../types/user";
-import { useState, useEffect } from "react";
-import axiosInst from "../api/client";
 import { useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { userApi } from "../api/userApi";
 
 function UserProfilePage() {
   const { username } = useParams<{ username: string }>();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const { isAuthenticated, username: authUsername } = useAuth();
   const isOwnProfile = isAuthenticated && authUsername === username;
 
-  useEffect(() => {
-    setLoading(true);
-    if (isOwnProfile) {
-      axiosInst
-        .get<User>("/users/me/profile")
-        .then((response) => {
-          setUser(response.data);
-        })
-        .catch((error) => {
-          console.error("Erreur:", error);
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    } else {
-      axiosInst
-        .get<User>(`/users/${username}/`)
-        .then((response) => {
-          setUser(response.data);
-        })
-        .catch((error) => {
-          console.error("Erreur:", error);
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    }
-  }, [isOwnProfile, username]);
+  const { data: user, isLoading: loading } = useQuery({
+    queryKey: ["user", username, isOwnProfile],
+    queryFn: () => {
+      if (isOwnProfile) return userApi.getProfile();
+      return userApi.getByUsername(username!);
+    },
+  });
 
   /* Format a datetime string into a readable date */
   const formatDate = (dateString: string) => {
