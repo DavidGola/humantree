@@ -12,7 +12,10 @@ services:
       db:
         condition: service_healthy
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL}
     restart: unless-stopped
     ports:
       - "80:80"
