@@ -44,7 +44,7 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql+asyncpg://humantree_user:tree94@localhost:5432/humantree_test
           SECRET_KEY: test-secret-key-for-ci
-          ENVIRONMENT: development
+          ENVIRONMENT: test
           ORIGINS: http://localhost
         run: |
           cd backend
