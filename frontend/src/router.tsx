@@ -1,0 +1,22 @@
+import { createBrowserRouter } from "react-router-dom";
+import { lazy } from "react";
+import App from "./App";
+
+const SkillTreeListPage = lazy(() => import("./pages/SkillTreeListPage"));
+const SkillTreeDetailPage = lazy(() => import("./pages/SkillTreeDetailPage"));
+const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
+const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+
+export const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <App />,
+    children: [
+      { index: true, element: <SkillTreeListPage /> },
+      { path: "tree/:id", element: <SkillTreeDetailPage /> },
+      { path: "user/:username", element: <UserProfilePage /> },
+      { path: "register", element: <RegisterPage /> },
+      { path: "*", element: <div className="p-8">Page non trouvée</div> },
+    ],
+  },
+]);

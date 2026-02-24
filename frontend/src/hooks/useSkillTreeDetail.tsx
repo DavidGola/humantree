@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate, useBlocker } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
-import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { skillTreeApi } from "../api/skillTreeApi";
 import { userApi } from "../api/userApi";
@@ -46,7 +45,17 @@ export function useSkillTreeDetail() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const [isModalConfirmExitOpen, setIsModalConfirmExitOpen] = useState(false);
+  const hasUnsavedChanges = isEditing && isSkillTreeModified;
+
+  // Quitter le mode édition si l'utilisateur se déconnecte
+  useEffect(() => {
+    if (!isAuthenticated && isEditing) {
+      setSkillTree(skillTreeOriginal);
+      setIsEditing(false);
+      setIsEditingTitle(false);
+      setIsEditingDesc(false);
+    }
+  }, [isAuthenticated]);
 
   function changeUsersCheckedSkills(skillId: number, isChecked: boolean) {
     setUserDetailSkill((prev) => {
@@ -132,14 +141,13 @@ export function useSkillTreeDetail() {
     return storedUsername === skillTree.creator_username;
   }
 
-  function handleSkillUpdate(e: React.FormEvent) {
-    e.preventDefault();
+  function handleSkillUpdate(updatedSkill: Skill) {
     setSkillTree((prev) => {
-      if (!prev || !selectedSkill || !isAuthorizedToEdit()) return prev;
+      if (!prev || !isAuthorizedToEdit()) return prev;
       return {
         ...prev,
         skills: prev.skills.map((s) =>
-          s.id === selectedSkill.id ? selectedSkill : s,
+          s.id === updatedSkill.id ? updatedSkill : s,
         ),
       };
     });
@@ -296,19 +304,27 @@ export function useSkillTreeDetail() {
     });
   }
 
+  const [showExitEditModal, setShowExitEditModal] = useState(false);
+
   function handleEditButton() {
     if (isEditing) {
-      // Si on était en mode édition et qu'on clique pour terminer, on sauvegarde
       if (isSkillTreeModified) {
-        // Demander confirmation si des modifications ont été faites
-        setIsModalConfirmExitOpen(true);
+        setShowExitEditModal(true);
         return;
       }
       setIsEditingTitle(false);
       setIsEditingDesc(false);
     }
     setIsEditing((prev) => !prev);
-    setSelectedEdge(null); // Réinitialiser la sélection d'arête lors du changement de mode
+    setSelectedEdge(null);
+  }
+
+  function discardChanges() {
+    setSkillTree(skillTreeOriginal);
+    setIsEditing(false);
+    setIsEditingTitle(false);
+    setIsEditingDesc(false);
+    setShowExitEditModal(false);
   }
 
   function compareSkillTreeOriginal(): boolean {
@@ -341,6 +357,19 @@ export function useSkillTreeDetail() {
       setSelectedEdge(null);
     }
   }, [deletePressed, selectedEdge]);
+
+  // Bloquer la navigation in-app (react-router) quand il y a des modifications non sauvegardées
+  const blocker = useBlocker(hasUnsavedChanges);
+
+  // Bloquer la fermeture onglet / back navigateur / changement URL
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   const {
     data: fetchedSkillTree,
@@ -433,10 +462,12 @@ export function useSkillTreeDetail() {
       setIsModalDeleteOpen,
       handleDeleteTree,
     },
-    // Modal de confirmation sortie
-    confirmExit: {
-      isModalConfirmExitOpen,
-      setIsModalConfirmExitOpen,
+    // Protection des modifications non sauvegardées
+    unsavedGuard: {
+      blocker,
+      showExitEditModal,
+      setShowExitEditModal,
+      discardChanges,
     },
   };
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
@@ -21,6 +21,7 @@ function SkillTreeListPage() {
   const [newTreeDescription, setNewTreeDescription] = useState("");
 
   const [activeTab, setActiveTab] = useState<Tab>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { isAuthenticated } = useAuth();
 
@@ -35,6 +36,17 @@ function SkillTreeListPage() {
   });
 
   const queryClient = useQueryClient();
+
+  const filteredTrees = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return skillTrees;
+    return skillTrees.filter(
+      (t) =>
+        t.name.toLowerCase().includes(query) ||
+        t.description?.toLowerCase().includes(query) ||
+        t.creator_username.toLowerCase().includes(query),
+    );
+  }, [skillTrees, searchQuery]);
 
   const handleCreateTree = (e: React.FormEvent) => {
     e.preventDefault(); // Empêche le rechargement de la page
@@ -58,6 +70,17 @@ function SkillTreeListPage() {
 
   return (
     <div className="min-h-screen p-8 bg-gray-100 dark:bg-slate-900">
+      {/* Barre de recherche */}
+      <div className="max-w-xl mx-auto mb-6">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Rechercher un arbre de compétences..."
+          className="w-full py-2.5 px-4 text-sm rounded-lg bg-white dark:bg-slate-800 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 border border-gray-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+        />
+      </div>
+
       <nav className="mb-8 flex justify-center border-b border-gray-200 dark:border-slate-700">
         <button
           className={`px-6 py-4 text-base font-medium transition-all duration-200 relative ${
@@ -129,13 +152,15 @@ function SkillTreeListPage() {
               Chargement...
             </span>
           </div>
-        ) : skillTrees.length === 0 ? (
+        ) : filteredTrees.length === 0 ? (
           <p className="text-center py-12 text-gray-500 dark:text-slate-400">
-            Aucun arbre de compétences trouvé.
+            {searchQuery.trim()
+              ? "Aucun résultat pour cette recherche."
+              : "Aucun arbre de compétences trouvé."}
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {skillTrees.map((tree) => (
+            {filteredTrees.map((tree) => (
               <div
                 key={tree.id}
                 className="relative rounded-lg p-6 shadow-md hover:shadow-xl transition-shadow duration-300 bg-white dark:bg-slate-800"

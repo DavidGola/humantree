@@ -6,6 +6,7 @@ import "@xyflow/react/dist/style.css";
 import { useFavorites } from "../hooks/useFavorites";
 import { Modal } from "../components/Modal";
 import { Button } from "../components/Button";
+import { SkillDetailModal } from "../components/SkillDetailModal";
 import { useSkillTreeDetail } from "../hooks/useSkillTreeDetail";
 
 interface CheckSkillNodeData {
@@ -139,7 +140,7 @@ function NoCheckSkillNode({ data }: { data: NoCheckSkillNodeData }) {
 
 function SkillTreeDetailPage() {
   const navigate = useNavigate();
-  const { loading, tree, selection, editing, skills, edges, deleteTree, confirmExit } = useSkillTreeDetail();
+  const { loading, tree, selection, editing, skills, edges, deleteTree, unsavedGuard } = useSkillTreeDetail();
   const { favoriteTrees, handleFavorite } = useFavorites();
 
   if (loading.isLoading) {
@@ -353,92 +354,21 @@ function SkillTreeDetailPage() {
           edges={tree.graphData.edges}
           isValidConnection={editing.isValidConnection}
           colorMode={tree.isDarkMode ? "dark" : "light"}
+          fitView
           proOptions={{ hideAttribution: true }}
         />
       </div>
 
       {/* Modal : ouverture d'une compétence */}
-      {selection.selectedSkill &&
-        (editing.isEditing ? (
-          <Modal
-            onClose={() => selection.setSelectedSkill(null)}
-            title="Modifier la compétence"
-          >
-            <form onSubmit={skills.handleSkillUpdate}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300">
-                  Nom
-                </label>
-                <input
-                  type="text"
-                  value={selection.selectedSkill.name}
-                  onChange={(e) =>
-                    selection.setSelectedSkill({
-                      ...selection.selectedSkill!,
-                      name: e.target.value,
-                    })
-                  }
-                  className="w-full border px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300">
-                  Description
-                </label>
-                <textarea
-                  value={selection.selectedSkill.description || ""}
-                  onChange={(e) =>
-                    selection.setSelectedSkill({
-                      ...selection.selectedSkill!,
-                      description: e.target.value,
-                    })
-                  }
-                  className="w-full border px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-                  rows={3}
-                />
-              </div>
-              <div className="flex items-center justify-between pt-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    skills.handleDeleteSkill(selection.selectedSkill!.id)
-                  }
-                  className="text-sm transition-colors duration-200 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-                >
-                  Supprimer cette compétence
-                </button>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={() => selection.setSelectedSkill(null)}
-                  >
-                    Annuler
-                  </Button>
-                  <Button variant="primary" type="submit">
-                    Enregistrer
-                  </Button>
-                </div>
-              </div>
-            </form>
-          </Modal>
-        ) : (
-          <Modal
-            onClose={() => selection.setSelectedSkill(null)}
-            title={selection.selectedSkill.name}
-          >
-            <p className="text-gray-600 dark:text-slate-300 leading-relaxed">
-              {selection.selectedSkill.description || "Aucune description"}
-            </p>
-            <div className="flex justify-end mt-6">
-              <Button
-                variant="secondary"
-                onClick={() => selection.setSelectedSkill(null)}
-              >
-                Fermer
-              </Button>
-            </div>
-          </Modal>
-        ))}
+      {selection.selectedSkill && (
+        <SkillDetailModal
+          skill={selection.selectedSkill}
+          isEditing={editing.isEditing}
+          onClose={() => selection.setSelectedSkill(null)}
+          onSave={skills.handleSkillUpdate}
+          onDelete={skills.handleDeleteSkill}
+        />
+      )}
 
       {/* Modal : créer une compétence */}
       {skills.createSkillModalOpen && (
@@ -513,30 +443,50 @@ function SkillTreeDetailPage() {
           </div>
         </Modal>
       )}
-      {/* Modal : confirmer sortie sans sauvegarder */}
-      {confirmExit.isModalConfirmExitOpen && (
+      {/* Modal : confirmer sortie du mode édition (bouton "Terminer") */}
+      {unsavedGuard.showExitEditModal && (
         <Modal
-          onClose={() => confirmExit.setIsModalConfirmExitOpen(false)}
+          onClose={() => unsavedGuard.setShowExitEditModal(false)}
           title="Modifications non sauvegardées"
         >
           <p className="text-sm mb-6 text-gray-500 dark:text-slate-400">
-            Vous avez des modifications non sauvegardées. Êtes-vous sûr de
-            vouloir quitter sans sauvegarder ?
+            Vous avez des modifications non sauvegardées. Que souhaitez-vous
+            faire ?
           </p>
           <div className="flex justify-end gap-2">
             <Button
               variant="secondary"
-              onClick={() => confirmExit.setIsModalConfirmExitOpen(false)}
+              onClick={() => unsavedGuard.setShowExitEditModal(false)}
             >
-              Annuler
+              Continuer l'édition
+            </Button>
+            <Button variant="danger" onClick={unsavedGuard.discardChanges}>
+              Abandonner les modifications
+            </Button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal : bloquer la navigation (liens, retour, déconnexion) */}
+      {unsavedGuard.blocker.state === "blocked" && (
+        <Modal
+          onClose={() => unsavedGuard.blocker.reset?.()}
+          title="Modifications non sauvegardées"
+        >
+          <p className="text-sm mb-6 text-gray-500 dark:text-slate-400">
+            Vous avez des modifications non sauvegardées. Si vous quittez cette
+            page, vos changements seront perdus.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => unsavedGuard.blocker.reset?.()}
+            >
+              Rester sur la page
             </Button>
             <Button
               variant="danger"
-              onClick={() => {
-                confirmExit.setIsModalConfirmExitOpen(false);
-                editing.setIsEditing(false);
-                tree.setSkillTree(tree.skillTreeOriginal);
-              }}
+              onClick={() => unsavedGuard.blocker.proceed?.()}
             >
               Quitter sans sauvegarder
             </Button>
