@@ -16,8 +16,9 @@ export const Navbar = () => {
         {/* Logo */}
         <a
           href="/"
-          className="text-xl font-bold text-gray-800 dark:text-white tracking-tight hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
+          className="flex items-center gap-2 text-xl font-bold text-gray-800 dark:text-white tracking-tight hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
         >
+          <img src="/favicon.svg" alt="HumanTree" className="w-7 h-7" />
           HumanTree
         </a>
 
