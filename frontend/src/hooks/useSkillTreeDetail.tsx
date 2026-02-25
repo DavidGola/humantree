@@ -3,6 +3,7 @@ import { useParams, useNavigate, useBlocker } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import toast from "react-hot-toast";
+import { getApiErrorMessage } from "../utils/apiErrors";
 import { skillTreeApi } from "../api/skillTreeApi";
 import { userApi } from "../api/userApi";
 import {
@@ -35,6 +36,8 @@ export function useSkillTreeDetail() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSkillTreeModified, setIsSkillTreeModified] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [userDetailSkill, setUserDetailSkill] =
     useState<UserDetailSkill | null>(null);
 
@@ -93,8 +96,8 @@ export function useSkillTreeDetail() {
         .then(() => {
           changeUsersCheckedSkills(skillId, isChecked);
         })
-        .catch(() => {
-          toast.error("Erreur lors de la mise à jour de la compétence.");
+        .catch((err) => {
+          toast.error(getApiErrorMessage(err));
         });
     },
     [isAuthenticated, userDetailSkill],
@@ -204,6 +207,7 @@ export function useSkillTreeDetail() {
 
   function handleSaveToBackend() {
     if (!skillTree || !isAuthorizedToEdit()) return;
+    setIsSaving(true);
     skillTreeApi
       .save(id!, skillTree)
       .then(() => {
@@ -212,8 +216,11 @@ export function useSkillTreeDetail() {
         queryClient.invalidateQueries({ queryKey: ["skillTree", id] });
         toast.success("Données sauvegardées avec succès !");
       })
-      .catch(() => {
-        toast.error("Erreur lors de la sauvegarde.");
+      .catch((err) => {
+        toast.error(getApiErrorMessage(err));
+      })
+      .finally(() => {
+        setIsSaving(false);
       });
   }
 
@@ -390,16 +397,18 @@ export function useSkillTreeDetail() {
 
   const handleDeleteTree = () => {
     if (!skillTree || !isAuthorizedToEdit()) return;
-
+    setIsDeleting(true);
     skillTreeApi
       .remove(skillTree.id)
       .then(() => {
-        navigate("/"); // Rediriger vers la liste après suppression
-        // Fermer le modal
+        navigate("/");
         setIsModalDeleteOpen(false);
       })
-      .catch(() => {
-        toast.error("Erreur lors de la suppression de l'arbre.");
+      .catch((err) => {
+        toast.error(getApiErrorMessage(err));
+      })
+      .finally(() => {
+        setIsDeleting(false);
       });
   };
 
@@ -434,6 +443,7 @@ export function useSkillTreeDetail() {
       isEditingDesc,
       setIsEditingDesc,
       isSkillTreeModified,
+      isSaving,
       handleEditButton,
       handleSaveToBackend,
       isValidConnection,
@@ -460,6 +470,7 @@ export function useSkillTreeDetail() {
     deleteTree: {
       isModalDeleteOpen,
       setIsModalDeleteOpen,
+      isDeleting,
       handleDeleteTree,
     },
     // Protection des modifications non sauvegardées

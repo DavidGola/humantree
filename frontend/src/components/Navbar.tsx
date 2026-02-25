@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 export const Navbar = () => {
-  const { isAuthenticated, username, login, logout } = useAuth();
+  const { isAuthenticated, isLoggingIn, username, login, logout } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [mail_or_username, setMailOrUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -28,7 +29,14 @@ export const Navbar = () => {
             <div className="flex items-center gap-2">
               <form
                 className="flex items-center gap-2"
-                onSubmit={(e) => login(e, mail_or_username, password)}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!mail_or_username.trim() || !password.trim()) {
+                    toast.error("Veuillez remplir tous les champs.");
+                    return;
+                  }
+                  login(e, mail_or_username, password);
+                }}
               >
                 <input
                   type="text"
@@ -46,9 +54,10 @@ export const Navbar = () => {
                 />
                 <button
                   type="submit"
-                  className="whitespace-nowrap py-1.5 px-4 text-sm font-medium rounded-md bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 transition-all duration-200"
+                  disabled={isLoggingIn}
+                  className="whitespace-nowrap py-1.5 px-4 text-sm font-medium rounded-md bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Se connecter
+                  {isLoggingIn ? "Connexion..." : "Se connecter"}
                 </button>
               </form>
               <a

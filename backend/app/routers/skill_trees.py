@@ -173,6 +173,8 @@ async def remove_skill_tree_from_favorites(
 ):
     """Endpoint pour supprimer un skill tree des favoris de l'utilisateur actuellement authentifié."""
     result = await delete_user_favorite_tree(db, user_id, tree_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Favori introuvable")
     return result
 
 

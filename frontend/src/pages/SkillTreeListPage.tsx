@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
+import { getApiErrorMessage } from "../utils/apiErrors";
 
 import { useFavorites } from "../hooks/useFavorites";
 
@@ -19,6 +20,7 @@ function SkillTreeListPage() {
 
   const [newTreeName, setNewTreeName] = useState("");
   const [newTreeDescription, setNewTreeDescription] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
 
   const [activeTab, setActiveTab] = useState<Tab>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -49,22 +51,29 @@ function SkillTreeListPage() {
   }, [skillTrees, searchQuery]);
 
   const handleCreateTree = (e: React.FormEvent) => {
-    e.preventDefault(); // Empêche le rechargement de la page
+    e.preventDefault();
 
+    if (!newTreeName.trim()) {
+      toast.error("Le nom de l'arbre est requis.");
+      return;
+    }
+
+    setIsCreating(true);
     skillTreeApi
       .create(newTreeName, newTreeDescription)
       .then(() => {
         queryClient.invalidateQueries({
           queryKey: ["skillTrees"],
         });
-        // Fermer le modal
         setIsModalCreateOpen(false);
-        // Réinitialiser les champs
         setNewTreeName("");
         setNewTreeDescription("");
       })
-      .catch(() => {
-        toast.error("Erreur lors de la création de l'arbre.");
+      .catch((err) => {
+        toast.error(getApiErrorMessage(err));
+      })
+      .finally(() => {
+        setIsCreating(false);
       });
   };
 
@@ -257,8 +266,8 @@ function SkillTreeListPage() {
               >
                 Annuler
               </Button>
-              <Button variant="primary" type="submit">
-                Créer
+              <Button variant="primary" type="submit" disabled={isCreating}>
+                {isCreating ? "Création..." : "Créer"}
               </Button>
             </div>
           </form>

@@ -43,6 +43,7 @@ axiosInst.interceptors.response.use(
         .catch((refreshError) => {
           localStorage.removeItem("token");
           localStorage.removeItem("username");
+          window.dispatchEvent(new CustomEvent("auth:logout"));
           return Promise.reject(refreshError);
         });
     }

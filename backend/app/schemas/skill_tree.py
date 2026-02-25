@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from .skill import SkillSchema, SkillSaveSchema
 
 
@@ -31,7 +31,7 @@ class SkillTreeSaveSchema(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
     id: int
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
     description: str | None = None
     creator_username: str
     skills: list[SkillSaveSchema]
@@ -40,7 +40,7 @@ class SkillTreeSaveSchema(BaseModel):
 class SkillTreeCreateWithoutUsernameSchema(BaseModel):
     """Schema for creating a new skill tree without specifying the creator's username."""
 
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
     description: str | None = None
 
 
@@ -55,5 +55,5 @@ class SkillTreeCreateSchema(BaseModel):
 class SkillTreeUpdateSchema(BaseModel):
     """Schema for updating an existing skill tree."""
 
-    name: str | None = None
+    name: str | None = Field(None, min_length=1, max_length=100)
     description: str | None = None

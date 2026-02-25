@@ -13,17 +13,20 @@ export const Button = ({
   children,
   onClick,
   type = "button",
+  disabled = false,
 }: {
   variant: Variant;
   children: React.ReactNode;
   onClick?: () => void;
   type?: "button" | "submit" | "reset";
+  disabled?: boolean;
 }) => {
   return (
     <button
       type={type}
       onClick={onClick}
-      className={`px-4 py-2 text-sm rounded-lg transition-colors duration-200 ${variantStyles[variant]}`}
+      disabled={disabled}
+      className={`px-4 py-2 text-sm rounded-lg transition-colors duration-200 ${variantStyles[variant]} disabled:opacity-50 disabled:cursor-not-allowed`}
     >
       {children}
     </button>

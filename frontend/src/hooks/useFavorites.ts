@@ -1,5 +1,6 @@
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
+import { getApiErrorMessage } from "../utils/apiErrors";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { skillTreeApi } from "../api/skillTreeApi";
 
@@ -30,8 +31,8 @@ export function useFavorites() {
         queryClient.invalidateQueries({ queryKey: ["favorites"] });
         queryClient.invalidateQueries({ queryKey: ["skillTrees"] });
       })
-      .catch(() => {
-        toast.error("Une erreur est survenue. Veuillez réessayer.");
+      .catch((err) => {
+        toast.error(getApiErrorMessage(err));
       });
   };
 

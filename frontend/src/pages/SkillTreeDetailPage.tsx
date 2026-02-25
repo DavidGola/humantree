@@ -308,8 +308,8 @@ function SkillTreeDetailPage() {
                 >
                   + Ajouter une compétence
                 </button>
-                <Button variant="primary" onClick={editing.handleSaveToBackend}>
-                  Sauvegarder
+                <Button variant="primary" onClick={editing.handleSaveToBackend} disabled={editing.isSaving}>
+                  {editing.isSaving ? "Sauvegarde..." : "Sauvegarder"}
                 </Button>
                 <button
                   onClick={() => deleteTree.setIsModalDeleteOpen(true)}
@@ -437,8 +437,8 @@ function SkillTreeDetailPage() {
             >
               Annuler
             </Button>
-            <Button variant="danger" onClick={deleteTree.handleDeleteTree}>
-              Supprimer
+            <Button variant="danger" onClick={deleteTree.handleDeleteTree} disabled={deleteTree.isDeleting}>
+              {deleteTree.isDeleting ? "Suppression..." : "Supprimer"}
             </Button>
           </div>
         </Modal>

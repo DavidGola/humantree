@@ -1,9 +1,11 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { toast } from "react-hot-toast";
 import { userApi } from "../api/userApi";
+import { getApiErrorMessage } from "../utils/apiErrors";
 
 const AuthContext = createContext({
   isAuthenticated: false,
+  isLoggingIn: false,
   login: (_e: React.FormEvent, _mail: string, _password: string) => {},
   logout: () => {},
   username: "",
@@ -19,10 +21,12 @@ export function useAuth() {
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [username, setUsername] = useState("");
 
   function login(e: React.FormEvent, mail: string, password: string) {
     e.preventDefault();
+    setIsLoggingIn(true);
     const formData = new URLSearchParams();
     formData.append("username", mail);
     formData.append("password", password);
@@ -38,10 +42,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUsername(response.data.username);
         setIsAuthenticated(true);
       })
-      .catch(() => {
-        toast.error(
-          "Échec de la connexion. Vérifiez votre identifiant ou mot de passe.",
-        );
+      .catch((err) => {
+        if (err.response?.status === 401) {
+          toast.error("Identifiant ou mot de passe incorrect.");
+        } else {
+          toast.error(getApiErrorMessage(err));
+        }
+      })
+      .finally(() => {
+        setIsLoggingIn(false);
       });
   }
 
@@ -93,6 +102,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
+  // Logout automatique quand le refresh token échoue (intercepteur Axios)
+  useEffect(() => {
+    const handleForceLogout = () => {
+      setUsername("");
+      setIsAuthenticated(false);
+      toast.error("Session expirée. Veuillez vous reconnecter.");
+    };
+    window.addEventListener("auth:logout", handleForceLogout);
+    return () => window.removeEventListener("auth:logout", handleForceLogout);
+  }, []);
+
   function isJWTExpired(token: string): boolean {
     try {
       const parts = token.split(".");
@@ -107,7 +127,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, username, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoggingIn, username, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

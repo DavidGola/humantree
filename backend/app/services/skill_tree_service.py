@@ -1,5 +1,7 @@
 # /backend/app/services/skill_tree_service.py
 
+import logging
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy import select
@@ -9,6 +11,8 @@ from app.models.skill_tree import SkillTree
 from app.models.user_favorite_trees import UserFavoriteTrees
 from app.models.user_check_skill import UserCheckSkill
 from fastapi import HTTPException
+
+logger = logging.getLogger(__name__)
 
 from app.schemas.skill_tree import (
     SkillTreeSimpleSchema,
@@ -198,7 +202,16 @@ async def update_skill_tree(
     if data.description is not None:
         skill_tree.description = data.description
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as e:
+        await db.rollback()
+        error_msg = str(e.orig).lower() if e.orig else str(e).lower()
+        if "unique" in error_msg or "duplicate" in error_msg:
+            raise HTTPException(status_code=409, detail="Un arbre avec ce nom existe déjà")
+        logger.error("IntegrityError inattendue dans update_skill_tree: %s", e.orig)
+        raise HTTPException(status_code=400, detail="Erreur d'intégrité des données")
+
     await db.refresh(skill_tree)
     return SkillTreeSimpleSchema.model_validate(skill_tree)
 
@@ -292,7 +305,18 @@ async def save_skill_tree(db: AsyncSession, skill_tree: SkillTreeSaveSchema) -> 
         if skill.id not in skills_list:
             await delete_skill(db, skill.id, commit=False)
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as e:
+        await db.rollback()
+        error_msg = str(e.orig).lower() if e.orig else str(e).lower()
+        if "unique" in error_msg or "duplicate" in error_msg:
+            raise HTTPException(
+                status_code=409,
+                detail="Conflit lors de la sauvegarde : doublon détecté",
+            )
+        logger.error("IntegrityError inattendue dans save_skill_tree: %s", e.orig)
+        raise HTTPException(status_code=400, detail="Erreur d'intégrité des données")
 
     return True
 
