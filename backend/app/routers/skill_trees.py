@@ -63,13 +63,14 @@ router = APIRouter(
     "/",
     response_model=list[SkillTreeSimpleSchema],
     summary="Get all skill trees",
-    description="Retrieve a list of all skill trees available",
+    description="Retrieve a list of all skill trees available, optionally filtered by tag",
 )
 async def get_all_skill_trees(
+    tag: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
-    """Endpoint pour récupérer tous les skill trees."""
-    result = await get_all(db)
+    """Endpoint pour récupérer tous les skill trees, avec filtrage optionnel par tag."""
+    result = await get_all(db, tag=tag)
     return result
 
 
@@ -200,6 +201,7 @@ async def create_skill_tree_endpoint(
             name=data.name,
             description=data.description,
             creator_username=user_username,
+            tags=data.tags,
         ),
     )
     return result

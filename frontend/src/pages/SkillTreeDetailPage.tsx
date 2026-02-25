@@ -256,20 +256,69 @@ function SkillTreeDetailPage() {
                 </Button>
               </form>
             ) : (
-              <div className="flex items-center gap-2 mb-3">
-                <p className="text-sm text-gray-500 dark:text-slate-400">
-                  {skillTree.description || "Aucune description"}
-                </p>
+              <>
+                <div className="flex items-center gap-2 mb-3">
+                  <p className="text-sm text-gray-500 dark:text-slate-400">
+                    {skillTree.description || "Aucune description"}
+                  </p>
 
-                {editing.isEditing && tree.isAuthorizedToEdit() && (
-                  <button
-                    onClick={() => editing.setIsEditingDesc(true)}
-                    className="text-sm transition-colors duration-200 text-gray-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400"
+                  {editing.isEditing && tree.isAuthorizedToEdit() && (
+                    <button
+                      onClick={() => editing.setIsEditingDesc(true)}
+                      className="text-sm transition-colors duration-200 text-gray-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400"
+                    >
+                      Modifier
+                    </button>
+                  )}
+                </div>
+
+                {/* Tags */}
+                {editing.isEditingTags && tree.isAuthorizedToEdit() ? (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      editing.submitTagsEdit();
+                    }}
+                    className="flex items-center gap-2 mb-2"
                   >
-                    Modifier
-                  </button>
+                    <input
+                      type="text"
+                      value={editing.tagsInput}
+                      onChange={(e) => editing.setTagsInput(e.target.value)}
+                      placeholder="python, web, api (max 10, séparés par des virgules)"
+                      className="text-sm px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1 border text-gray-600 dark:text-slate-300 border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700"
+                    />
+                    <Button variant="primary" type="submit">
+                      OK
+                    </Button>
+                  </form>
+                ) : (
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex flex-wrap gap-1.5">
+                      {skillTree.tags && skillTree.tags.length > 0 ? (
+                        skillTree.tags.map((tag: string) => (
+                          <span
+                            key={tag}
+                            className="px-2 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300"
+                          >
+                            #{tag}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-gray-400 dark:text-slate-500">Aucun tag</span>
+                      )}
+                    </div>
+                    {editing.isEditing && tree.isAuthorizedToEdit() && (
+                      <button
+                        onClick={() => editing.startEditingTags()}
+                        className="text-sm transition-colors duration-200 text-gray-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400"
+                      >
+                        Modifier
+                      </button>
+                    )}
+                  </div>
                 )}
-              </div>
+              </>
             )}
           </div>
           {/* Infos création à droite de l'écran */}

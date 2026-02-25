@@ -27,6 +27,8 @@ export function useSkillTreeDetail() {
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingDesc, setIsEditingDesc] = useState(false);
+  const [isEditingTags, setIsEditingTags] = useState(false);
+  const [tagsInput, setTagsInput] = useState("");
   const [isModalDeleteOpen, setIsModalDeleteOpen] = useState(false);
 
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
@@ -57,6 +59,7 @@ export function useSkillTreeDetail() {
       setIsEditing(false);
       setIsEditingTitle(false);
       setIsEditingDesc(false);
+      setIsEditingTags(false);
     }
   }, [isAuthenticated]);
 
@@ -136,6 +139,34 @@ export function useSkillTreeDetail() {
     },
     [graphData.nodes, graphData.edges],
   );
+
+  function startEditingTags() {
+    if (!skillTree) return;
+    setTagsInput(skillTree.tags?.join(", ") || "");
+    setIsEditingTags(true);
+  }
+
+  function submitTagsEdit() {
+    if (!skillTree) return;
+    const newTags = tagsInput
+      .split(",")
+      .map((t) => t.trim().toLowerCase().replace(/^#/, ""))
+      .filter((t) => t.length > 0);
+
+    if (newTags.length > 10) {
+      toast.error("Maximum 10 tags autorisés.");
+      return;
+    }
+    if (newTags.some((t) => t.length > 30)) {
+      toast.error("Chaque tag ne peut pas dépasser 30 caractères.");
+      return;
+    }
+
+    // Dédupliquer
+    const uniqueTags = [...new Set(newTags)];
+    setSkillTree({ ...skillTree, tags: uniqueTags });
+    setIsEditingTags(false);
+  }
 
   function isAuthorizedToEdit(): boolean {
     if (!isAuthenticated) return false;
@@ -321,6 +352,7 @@ export function useSkillTreeDetail() {
       }
       setIsEditingTitle(false);
       setIsEditingDesc(false);
+      setIsEditingTags(false);
     }
     setIsEditing((prev) => !prev);
     setSelectedEdge(null);
@@ -331,6 +363,7 @@ export function useSkillTreeDetail() {
     setIsEditing(false);
     setIsEditingTitle(false);
     setIsEditingDesc(false);
+    setIsEditingTags(false);
     setShowExitEditModal(false);
   }
 
@@ -442,6 +475,12 @@ export function useSkillTreeDetail() {
       setIsEditingTitle,
       isEditingDesc,
       setIsEditingDesc,
+      isEditingTags,
+      setIsEditingTags,
+      tagsInput,
+      setTagsInput,
+      startEditingTags,
+      submitTagsEdit,
       isSkillTreeModified,
       isSaving,
       handleEditButton,

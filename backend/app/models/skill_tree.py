@@ -3,6 +3,7 @@ from sqlalchemy import String, Text, ForeignKey, text
 from datetime import datetime
 from app.models.base_model import BaseModel
 from .skill import Skill
+from .tag import Tag, SkillTreeTag
 
 
 class SkillTree(BaseModel):
@@ -20,3 +21,7 @@ class SkillTree(BaseModel):
     )
 
     skills: Mapped[list["Skill"]] = relationship(cascade="all, delete-orphan")
+    tags: Mapped[list["Tag"]] = relationship(
+        secondary="skill_tree_tags",
+        lazy="selectin",
+    )

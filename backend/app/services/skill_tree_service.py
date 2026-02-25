@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.models.skill_tree import SkillTree
+from app.models.tag import Tag, SkillTreeTag
 from app.models.user_favorite_trees import UserFavoriteTrees
 from app.models.user_check_skill import UserCheckSkill
 from fastapi import HTTPException
@@ -28,31 +29,52 @@ from app.services.skill_service import update_skill, delete_skill
 from app.models.skill import Skill
 
 from sqlalchemy.orm import selectinload
-from sqlalchemy import text
+from sqlalchemy import text, delete
 
 from datetime import datetime
 
 
-async def get_all(db: AsyncSession) -> list[SkillTreeSimpleSchema]:
-    """
-    Récupère tous les skill_trees de la base de données.
+async def _sync_tags(db: AsyncSession, skill_tree_id: int, tag_names: list[str]) -> None:
+    """Upsert tags et met à jour la table de jonction pour un skill tree."""
+    if not tag_names:
+        # Supprimer tous les tags existants
+        await db.execute(
+            delete(SkillTreeTag).where(SkillTreeTag.skill_tree_id == skill_tree_id)
+        )
+        return
 
-    Args:
-        db: Session de base de données async
-
-    Returns:
-        Liste de SkillTreeListSchema
-    """
-    # Étape 1: Construire la requête SELECT
-    stmt = select(SkillTree)
-
-    # Étape 2: Exécuter la requête de manière asynchrone
+    # Upsert : récupérer les tags existants
+    stmt = select(Tag).where(Tag.name.in_(tag_names))
     result = await db.execute(stmt)
+    existing_tags = {t.name: t for t in result.scalars().all()}
 
-    # Étape 3: Extraire les objets ORM du résultat
-    list_skill_trees = result.scalars().all()
+    # Créer les tags manquants
+    for name in tag_names:
+        if name not in existing_tags:
+            tag = Tag(name=name)
+            db.add(tag)
+            await db.flush()
+            existing_tags[name] = tag
 
-    # Étape 4: Convertir les objets ORM en schémas Pydantic
+    # Remplacer les associations
+    await db.execute(
+        delete(SkillTreeTag).where(SkillTreeTag.skill_tree_id == skill_tree_id)
+    )
+    for name in tag_names:
+        db.add(SkillTreeTag(skill_tree_id=skill_tree_id, tag_id=existing_tags[name].id))
+
+
+async def get_all(db: AsyncSession, tag: str | None = None) -> list[SkillTreeSimpleSchema]:
+    """Récupère tous les skill_trees, avec filtrage optionnel par tag."""
+    stmt = select(SkillTree).options(selectinload(SkillTree.tags))
+
+    if tag:
+        stmt = stmt.join(SkillTreeTag, SkillTree.id == SkillTreeTag.skill_tree_id).join(
+            Tag, SkillTreeTag.tag_id == Tag.id
+        ).where(Tag.name == tag.strip().lower())
+
+    result = await db.execute(stmt)
+    list_skill_trees = result.scalars().unique().all()
     return [SkillTreeSimpleSchema.model_validate(st) for st in list_skill_trees]
 
 
@@ -96,6 +118,22 @@ async def get_trendings(db: AsyncSession, timestamp="w") -> list[SkillTreeSimple
     )
     result = await db.execute(stmt)
     skill_trees = result.fetchall()
+
+    if not skill_trees:
+        return []
+
+    # Charger les tags pour ces skill trees
+    tree_ids = [st.id for st in skill_trees]
+    tags_stmt = (
+        select(SkillTreeTag.skill_tree_id, Tag.name)
+        .join(Tag, SkillTreeTag.tag_id == Tag.id)
+        .where(SkillTreeTag.skill_tree_id.in_(tree_ids))
+    )
+    tags_result = await db.execute(tags_stmt)
+    tags_by_tree: dict[int, list[str]] = {}
+    for row in tags_result:
+        tags_by_tree.setdefault(row.skill_tree_id, []).append(row.name)
+
     return [
         SkillTreeSimpleSchema(
             id=st.id,
@@ -103,6 +141,7 @@ async def get_trendings(db: AsyncSession, timestamp="w") -> list[SkillTreeSimple
             description=st.description,
             creator_username=st.creator_username,
             created_at=st.created_at,
+            tags=tags_by_tree.get(st.id, []),
         )
         for st in skill_trees
     ]
@@ -117,6 +156,7 @@ async def get_user_favorite_trees(
         .select_from(UserFavoriteTrees)
         .where(UserFavoriteTrees.user_id == user_id)
         .join(SkillTree, UserFavoriteTrees.skill_tree_id == SkillTree.id)
+        .options(selectinload(SkillTree.tags))
     )
     result = await db.execute(stmt)
     skill_trees = result.scalars().all()
@@ -139,7 +179,10 @@ async def get_by_id(
     stmt = (
         select(SkillTree)
         .where(SkillTree.id == skill_tree_id)
-        .options(selectinload(SkillTree.skills).selectinload(Skill.unlocks))
+        .options(
+            selectinload(SkillTree.skills).selectinload(Skill.unlocks),
+            selectinload(SkillTree.tags),
+        )
     )
     result = await db.execute(stmt)
     skill_tree = result.scalar_one_or_none()
@@ -160,14 +203,19 @@ async def create_skill_tree(
 
     db.add(skill_tree_orm)
     try:
-        await db.commit()
+        await db.flush()
     except IntegrityError as e:
         await db.rollback()
         raise HTTPException(
             status_code=409,
             detail="Error creating skill tree: possible duplicate or invalid data",
         )
-    await db.refresh(skill_tree_orm)
+
+    if data.tags:
+        await _sync_tags(db, skill_tree_orm.id, data.tags)
+
+    await db.commit()
+    await db.refresh(skill_tree_orm, attribute_names=["tags"])
 
     return SkillTreeSimpleSchema.model_validate(skill_tree_orm)
 
@@ -190,7 +238,7 @@ async def update_skill_tree(
 ) -> SkillTreeSimpleSchema | None:
     """Met à jour un skill_tree existant dans la base de données."""
     # SELECT
-    stmt = select(SkillTree).where(SkillTree.id == skill_tree_id)
+    stmt = select(SkillTree).where(SkillTree.id == skill_tree_id).options(selectinload(SkillTree.tags))
     result = await db.execute(stmt)
     skill_tree = result.scalar_one_or_none()
     if skill_tree is None:
@@ -202,6 +250,9 @@ async def update_skill_tree(
     if data.description is not None:
         skill_tree.description = data.description
 
+    if data.tags is not None:
+        await _sync_tags(db, skill_tree_id, data.tags)
+
     try:
         await db.commit()
     except IntegrityError as e:
@@ -212,7 +263,7 @@ async def update_skill_tree(
         logger.error("IntegrityError inattendue dans update_skill_tree: %s", e.orig)
         raise HTTPException(status_code=400, detail="Erreur d'intégrité des données")
 
-    await db.refresh(skill_tree)
+    await db.refresh(skill_tree, attribute_names=["tags"])
     return SkillTreeSimpleSchema.model_validate(skill_tree)
 
 
@@ -305,6 +356,9 @@ async def save_skill_tree(db: AsyncSession, skill_tree: SkillTreeSaveSchema) -> 
         if skill.id not in skills_list:
             await delete_skill(db, skill.id, commit=False)
 
+    # Synchroniser les tags
+    await _sync_tags(db, skill_tree.id, skill_tree.tags)
+
     try:
         await db.commit()
     except IntegrityError as e:
@@ -350,7 +404,7 @@ async def get_list_of_skill_trees_by_username(
     db: AsyncSession, username: str
 ) -> list[SkillTreeSimpleSchema]:
     """Récupère la liste des skill trees créés par un utilisateur."""
-    stmt = select(SkillTree).where(SkillTree.creator_username == username)
+    stmt = select(SkillTree).where(SkillTree.creator_username == username).options(selectinload(SkillTree.tags))
     result = await db.execute(stmt)
     skill_trees = result.scalars().all()
     return [SkillTreeSimpleSchema.model_validate(st) for st in skill_trees]

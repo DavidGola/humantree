@@ -14,6 +14,7 @@ export interface SkillTreeSimple {
   description: string | null;
   creator_username: string;
   created_at: string;
+  tags: string[];
 }
 
 export interface SkillTreeDetail extends SkillTreeSimple {

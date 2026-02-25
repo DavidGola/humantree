@@ -25,31 +25,51 @@ function SkillTreeListPage() {
 
   const [activeTab, setActiveTab] = useState<Tab>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [newTreeTags, setNewTreeTags] = useState("");
+  const [tagsError, setTagsError] = useState("");
 
   const { isAuthenticated } = useAuth();
 
   const { data: skillTrees = [], isLoading } = useQuery({
-    queryKey: ["skillTrees", "list", activeTab, isAuthenticated],
+    queryKey: ["skillTrees", "list", activeTab, isAuthenticated, activeTag],
     queryFn: () => {
       if (activeTab === "trending") return skillTreeApi.getTrendings();
       if (activeTab === "myTrees" && isAuthenticated) return skillTreeApi.getMyTrees();
       if (activeTab === "myFavoriteTrees" && isAuthenticated) return skillTreeApi.getMyFavorites();
-      return skillTreeApi.getAll();
+      return skillTreeApi.getAll(activeTag || undefined);
     },
   });
 
   const queryClient = useQueryClient();
 
   const filteredTrees = useMemo(() => {
-    const query = searchQuery.toLowerCase().trim();
+    const raw = searchQuery.toLowerCase().trim();
+    if (!raw) return skillTrees;
+    const isTagSearch = raw.startsWith("#");
+    const query = isTagSearch ? raw.slice(1) : raw;
     if (!query) return skillTrees;
+
+    if (isTagSearch) {
+      return skillTrees.filter((t) =>
+        t.tags?.some((tag) => tag.toLowerCase().includes(query)),
+      );
+    }
     return skillTrees.filter(
       (t) =>
         t.name.toLowerCase().includes(query) ||
         t.description?.toLowerCase().includes(query) ||
-        t.creator_username.toLowerCase().includes(query),
+        t.creator_username.toLowerCase().includes(query) ||
+        t.tags?.some((tag) => tag.toLowerCase().includes(query)),
     );
   }, [skillTrees, searchQuery]);
+
+  const parseTags = (input: string): string[] => {
+    return input
+      .split(",")
+      .map((t) => t.trim().toLowerCase().replace(/^#/, ""))
+      .filter((t) => t.length > 0);
+  };
 
   const handleCreateTree = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,9 +85,20 @@ function SkillTreeListPage() {
     }
     setNameError("");
 
+    const tags = parseTags(newTreeTags);
+    if (tags.length > 10) {
+      setTagsError("Maximum 10 tags autorisés.");
+      return;
+    }
+    if (tags.some((t) => t.length > 30)) {
+      setTagsError("Chaque tag ne peut pas dépasser 30 caractères.");
+      return;
+    }
+    setTagsError("");
+
     setIsCreating(true);
     skillTreeApi
-      .create(newTreeName, newTreeDescription)
+      .create(newTreeName, newTreeDescription, tags)
       .then(() => {
         queryClient.invalidateQueries({
           queryKey: ["skillTrees"],
@@ -75,6 +106,7 @@ function SkillTreeListPage() {
         setIsModalCreateOpen(false);
         setNewTreeName("");
         setNewTreeDescription("");
+        setNewTreeTags("");
       })
       .catch((err) => {
         toast.error(getApiErrorMessage(err));
@@ -96,6 +128,22 @@ function SkillTreeListPage() {
           className="w-full py-2.5 px-4 text-sm rounded-lg bg-white dark:bg-slate-800 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 border border-gray-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
         />
       </div>
+
+      {/* Tag filter actif */}
+      {activeTag && (
+        <div className="flex justify-center mb-4">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+            #{activeTag}
+            <button
+              onClick={() => setActiveTag(null)}
+              className="ml-1 hover:text-blue-900 dark:hover:text-blue-100"
+              aria-label="Retirer le filtre"
+            >
+              &times;
+            </button>
+          </span>
+        </div>
+      )}
 
       <nav className="mb-8 flex justify-center border-b border-gray-200 dark:border-slate-700">
         <button
@@ -188,6 +236,23 @@ function SkillTreeListPage() {
                 <p className="mt-2 text-gray-600 dark:text-slate-400">
                   {tree.description || "Aucune description"}
                 </p>
+                {tree.tags && tree.tags.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {tree.tags.map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setActiveTag(tag);
+                          setActiveTab("all");
+                        }}
+                        className="px-2 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200"
+                      >
+                        #{tag}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <p className="mt-4 text-sm text-gray-500 dark:text-slate-500">
                   Créé par {tree.creator_username} le{" "}
                   {new Date(tree.created_at).toLocaleDateString()}
@@ -232,7 +297,9 @@ function SkillTreeListPage() {
             setIsModalCreateOpen(false);
             setNewTreeName("");
             setNewTreeDescription("");
+            setNewTreeTags("");
             setNameError("");
+            setTagsError("");
           }}
         >
           <form className="" onSubmit={handleCreateTree}>
@@ -277,6 +344,32 @@ function SkillTreeListPage() {
                 value={newTreeDescription}
                 onChange={(e) => setNewTreeDescription(e.target.value)}
               />
+            </div>
+            <div className="mb-4">
+              <label
+                className="block text-sm font-bold mb-2 text-gray-700 dark:text-slate-300"
+                htmlFor="tags"
+              >
+                Tags
+              </label>
+              <input
+                id="tags"
+                type="text"
+                placeholder="python, web, api (séparés par des virgules, max 10)"
+                className={`shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-white dark:bg-slate-700 ${
+                  tagsError
+                    ? "border-red-500 dark:border-red-500"
+                    : "border-gray-300 dark:border-slate-600"
+                }`}
+                value={newTreeTags}
+                onChange={(e) => {
+                  setNewTreeTags(e.target.value);
+                  if (tagsError) setTagsError("");
+                }}
+              />
+              {tagsError && (
+                <p className="mt-1 text-sm text-red-500">{tagsError}</p>
+              )}
             </div>
             <div className="flex justify-end gap-2">
               <Button

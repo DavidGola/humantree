@@ -30,3 +30,7 @@ k8s/*-secret.yaml
 
 # k8s config files
 k8s/
+
+# BMAD
+_bmad/
+brainstorming*

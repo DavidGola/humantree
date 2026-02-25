@@ -1,5 +1,7 @@
 import logging
 
+import time
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -46,7 +48,19 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 content={"detail": "Le contenu dépasse la taille maximale autorisée (1 Mo)."},
             )
 
+        start = time.perf_counter()
         response = await call_next(request)
+        duration_ms = round((time.perf_counter() - start) * 1000)
+
+        # Logging requête
+        status = response.status_code
+        log_msg = f"{request.method} {request.url.path} {status} {duration_ms}ms"
+        if status >= 500:
+            logger.error(log_msg)
+        elif status >= 400:
+            logger.warning(log_msg)
+        else:
+            logger.info(log_msg)
 
         # Headers de sécurité
         response.headers["X-Content-Type-Options"] = "nosniff"

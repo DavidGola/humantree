@@ -2,8 +2,10 @@ import axiosInst from "./client";
 import type { SkillTreeSimple, SkillTreeDetail } from "../types/skillTree";
 
 export const skillTreeApi = {
-  getAll: () =>
-    axiosInst.get<SkillTreeSimple[]>("/skill-trees/").then((res) => res.data),
+  getAll: (tag?: string) =>
+    axiosInst
+      .get<SkillTreeSimple[]>("/skill-trees/", { params: tag ? { tag } : undefined })
+      .then((res) => res.data),
 
   getTrendings: () =>
     axiosInst
@@ -25,8 +27,8 @@ export const skillTreeApi = {
       .get<SkillTreeDetail>(`/skill-trees/${id}/`)
       .then((res) => res.data),
 
-  create: (name: string, description: string) =>
-    axiosInst.post("/skill-trees/", { name, description }),
+  create: (name: string, description: string, tags: string[] = []) =>
+    axiosInst.post("/skill-trees/", { name, description, tags }),
 
   save: (id: string, data: SkillTreeDetail) =>
     axiosInst.put(`/skill-trees/save/${id}/`, data),
