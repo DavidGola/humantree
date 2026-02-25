@@ -4,7 +4,11 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.limiter import limiter
 from app.routers.skill_trees import router as skill_trees_router
 from app.routers.skills import router as skills_router
 from app.routers.user import router as user_router
@@ -18,11 +22,43 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 load_dotenv()
 if os.getenv("ORIGINS"):
     origins = os.getenv("ORIGINS", "").split(",")
 else:
     raise ValueError("ORIGINS environment variable is not set or empty")
+
+
+# --- Middleware : headers de sécurité + limite taille payload ---
+MAX_CONTENT_LENGTH = 1_000_000  # 1 Mo
+
+
+class SecurityMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Validation taille du payload
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > MAX_CONTENT_LENGTH:
+            return JSONResponse(
+                status_code=413,
+                content={"detail": "Le contenu dépasse la taille maximale autorisée (1 Mo)."},
+            )
+
+        response = await call_next(request)
+
+        # Headers de sécurité
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+
+        return response
+
+
+app.add_middleware(SecurityMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

@@ -6,11 +6,13 @@
 
 # FastAPI core
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi import HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import Cookie
 from fastapi.responses import JSONResponse
+
+from app.limiter import limiter
 
 # SQLAlchemy
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -65,7 +67,9 @@ router = APIRouter(
     summary="Register a new user",
     description="Create a new user account with username, email, and password",
 )
+@limiter.limit("3/minute")
 async def register(
+    request: Request,
     data: UserCreateSchema,
     db: AsyncSession = Depends(get_db),
 ):
@@ -87,8 +91,10 @@ async def register(
     summary="Authenticate user and get JWT token",
     description="Authenticate a user with email and password, and receive a JWT token for future requests",
 )
+@limiter.limit("5/minute")
 async def login(
-    data: OAuth2PasswordRequestForm = Depends(),  # FastAPI gère automatiquement l'extraction de email et password
+    request: Request,
+    data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -134,7 +140,9 @@ async def login(
     summary="Refresh JWT token",
     description="Generate a new JWT token using a valid refresh token",
 )
+@limiter.limit("10/minute")
 async def refresh_token(
+    request: Request,
     refresh_token: str = Cookie(
         ..., description="Refresh token stored in a secure cookie"
     ),

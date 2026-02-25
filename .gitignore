@@ -17,6 +17,7 @@ bonne_pratique*.md
 # Docs personal notes
 cmd_doc
 SQL.md
+TODO.md
 
 # Environment variables
 .env

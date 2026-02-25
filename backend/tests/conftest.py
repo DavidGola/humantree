@@ -6,6 +6,7 @@ from httpx import AsyncClient, ASGITransport
 from app.main import app
 from app.database import get_db
 from app.models.base_model import BaseModel
+from app.limiter import limiter
 
 import os
 from dotenv import load_dotenv
@@ -35,12 +36,14 @@ async def client(setup_db):
             yield session
 
     app.dependency_overrides[get_db] = get_db_test
+    limiter.enabled = False
 
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
         yield ac
     app.dependency_overrides.clear()
+    limiter.enabled = True
 
 
 async def register_user(

@@ -81,9 +81,10 @@ jobs:
             cd /srv/humantree
             git pull origin main
             docker compose up -d --build
+            sudo systemctl reload nginx
             for i in {1..10}; do
               echo "Checking if the application is up... (attempt $i)"
-              if curl -X GET http://localhost:8000/health -f && curl -X GET http://localhost/ -f; then
+              if curl -X GET http://127.0.0.1:8000/health -f && curl -X GET http://127.0.0.1:3000/ -f; then
                 echo "Application is up and running!"
                 exit 0
               else
