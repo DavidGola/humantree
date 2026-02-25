@@ -54,7 +54,7 @@ async def register_user(
 ) -> dict:
     """Helper : crée un utilisateur et retourne la réponse JSON."""
     response = await client.post(
-        "/users/register",
+        "/api/v1/users/register",
         json={"username": username, "email": email, "password": password},
     )
     assert response.status_code == 200
@@ -68,7 +68,7 @@ async def login_user(
 ) -> dict:
     """Helper : login et retourne la réponse JSON (avec access_token)."""
     response = await client.post(
-        "/users/login",
+        "/api/v1/users/login",
         data={"username": username, "password": password},
     )
     assert response.status_code == 200
@@ -93,7 +93,7 @@ async def create_skill_tree(
 ) -> dict:
     """Helper : crée un skill tree et retourne la réponse JSON."""
     response = await client.post(
-        "/skill-trees/",
+        "/api/v1/skill-trees/",
         json={"name": name, "description": description},
         headers=headers,
     )

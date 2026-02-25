@@ -55,7 +55,7 @@ from app.schemas.auth import JWTTokenSchema
 
 # ========== CRÉATION DU ROUTER ==========
 router = APIRouter(
-    prefix="/users",
+    prefix="/api/v1/users",
     tags=["Users"],  # Catégorie dans la doc Swagger
 )
 

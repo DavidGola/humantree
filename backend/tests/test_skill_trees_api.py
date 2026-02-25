@@ -7,7 +7,7 @@ from tests.conftest import register_user, auth_headers, create_skill_tree
 
 @pytest.mark.asyncio
 async def test_get_skill_trees_empty(client):
-    response = await client.get("/skill-trees/")
+    response = await client.get("/api/v1/skill-trees/")
     assert response.status_code == 200
     assert response.json() == []
 
@@ -19,7 +19,7 @@ async def test_get_skill_trees_with_data(client):
     await create_skill_tree(client, headers, name="Tree 1")
     await create_skill_tree(client, headers, name="Tree 2")
 
-    response = await client.get("/skill-trees/")
+    response = await client.get("/api/v1/skill-trees/")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 2
@@ -36,7 +36,7 @@ async def test_create_skill_tree_success(client):
     await register_user(client)
     headers = await auth_headers(client)
     response = await client.post(
-        "/skill-trees/",
+        "/api/v1/skill-trees/",
         json={"name": "My Tree", "description": "A great tree"},
         headers=headers,
     )
@@ -51,7 +51,7 @@ async def test_create_skill_tree_success(client):
 @pytest.mark.asyncio
 async def test_create_skill_tree_unauthenticated(client):
     response = await client.post(
-        "/skill-trees/",
+        "/api/v1/skill-trees/",
         json={"name": "My Tree"},
     )
     assert response.status_code == 401
@@ -62,7 +62,7 @@ async def test_create_skill_tree_no_description(client):
     await register_user(client)
     headers = await auth_headers(client)
     response = await client.post(
-        "/skill-trees/",
+        "/api/v1/skill-trees/",
         json={"name": "Minimal Tree"},
         headers=headers,
     )
@@ -78,7 +78,7 @@ async def test_create_skill_tree_duplicate_name(client):
     headers = await auth_headers(client)
     await create_skill_tree(client, headers, name="Unique Tree")
     response = await client.post(
-        "/skill-trees/",
+        "/api/v1/skill-trees/",
         json={"name": "Unique Tree"},
         headers=headers,
     )
@@ -89,7 +89,7 @@ async def test_create_skill_tree_duplicate_name(client):
 async def test_create_skill_tree_empty_body(client):
     await register_user(client)
     headers = await auth_headers(client)
-    response = await client.post("/skill-trees/", json={}, headers=headers)
+    response = await client.post("/api/v1/skill-trees/", json={}, headers=headers)
     assert response.status_code == 422
 
 
@@ -102,7 +102,7 @@ async def test_get_skill_tree_by_id(client):
     headers = await auth_headers(client)
     tree = await create_skill_tree(client, headers)
 
-    response = await client.get(f"/skill-trees/{tree['id']}")
+    response = await client.get(f"/api/v1/skill-trees/{tree['id']}")
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Test Tree"
@@ -111,7 +111,7 @@ async def test_get_skill_tree_by_id(client):
 
 @pytest.mark.asyncio
 async def test_get_skill_tree_not_found(client):
-    response = await client.get("/skill-trees/99999")
+    response = await client.get("/api/v1/skill-trees/99999")
     assert response.status_code == 404
 
 
@@ -124,10 +124,10 @@ async def test_delete_skill_tree_success(client):
     headers = await auth_headers(client)
     tree = await create_skill_tree(client, headers)
 
-    response = await client.delete(f"/skill-trees/{tree['id']}", headers=headers)
+    response = await client.delete(f"/api/v1/skill-trees/{tree['id']}", headers=headers)
     assert response.status_code == 204
 
-    response = await client.get(f"/skill-trees/{tree['id']}")
+    response = await client.get(f"/api/v1/skill-trees/{tree['id']}")
     assert response.status_code == 404
 
 
@@ -137,7 +137,7 @@ async def test_delete_skill_tree_unauthenticated(client):
     headers = await auth_headers(client)
     tree = await create_skill_tree(client, headers)
 
-    response = await client.delete(f"/skill-trees/{tree['id']}")
+    response = await client.delete(f"/api/v1/skill-trees/{tree['id']}")
     assert response.status_code == 401
 
 
@@ -150,7 +150,7 @@ async def test_delete_skill_tree_not_owner(client):
     await register_user(client, username="other", email="other@example.com")
     headers_other = await auth_headers(client, username="other")
 
-    response = await client.delete(f"/skill-trees/{tree['id']}", headers=headers_other)
+    response = await client.delete(f"/api/v1/skill-trees/{tree['id']}", headers=headers_other)
     assert response.status_code == 403
 
 
@@ -158,7 +158,7 @@ async def test_delete_skill_tree_not_owner(client):
 async def test_delete_skill_tree_not_found(client):
     await register_user(client)
     headers = await auth_headers(client)
-    response = await client.delete("/skill-trees/99999", headers=headers)
+    response = await client.delete("/api/v1/skill-trees/99999", headers=headers)
     assert response.status_code == 404
 
 
@@ -172,7 +172,7 @@ async def test_update_skill_tree_success(client):
     tree = await create_skill_tree(client, headers)
 
     response = await client.patch(
-        f"/skill-trees/{tree['id']}",
+        f"/api/v1/skill-trees/{tree['id']}",
         json={"name": "Updated Name", "description": "Updated desc"},
         headers=headers,
     )
@@ -190,7 +190,7 @@ async def test_update_skill_tree_partial(client):
 
     # Mettre à jour seulement la description
     response = await client.patch(
-        f"/skill-trees/{tree['id']}",
+        f"/api/v1/skill-trees/{tree['id']}",
         json={"description": "New desc only"},
         headers=headers,
     )
@@ -210,7 +210,7 @@ async def test_update_skill_tree_not_owner(client):
     headers_other = await auth_headers(client, username="other")
 
     response = await client.patch(
-        f"/skill-trees/{tree['id']}",
+        f"/api/v1/skill-trees/{tree['id']}",
         json={"name": "Hacked"},
         headers=headers_other,
     )
@@ -224,7 +224,7 @@ async def test_update_skill_tree_unauthenticated(client):
     tree = await create_skill_tree(client, headers)
 
     response = await client.patch(
-        f"/skill-trees/{tree['id']}",
+        f"/api/v1/skill-trees/{tree['id']}",
         json={"name": "Hacked"},
     )
     assert response.status_code == 401
@@ -235,7 +235,7 @@ async def test_update_skill_tree_not_found(client):
     await register_user(client)
     headers = await auth_headers(client)
     response = await client.patch(
-        "/skill-trees/99999",
+        "/api/v1/skill-trees/99999",
         json={"name": "Ghost"},
         headers=headers,
     )
@@ -252,7 +252,7 @@ async def test_save_skill_tree_with_skills(client):
     tree = await create_skill_tree(client, headers)
 
     response = await client.put(
-        f"/skill-trees/save/{tree['id']}",
+        f"/api/v1/skill-trees/save/{tree['id']}",
         json={
             "id": tree["id"],
             "name": "Test Tree",
@@ -267,7 +267,7 @@ async def test_save_skill_tree_with_skills(client):
     assert response.status_code == 200
 
     # Vérifier que les skills sont sauvegardés
-    detail = await client.get(f"/skill-trees/{tree['id']}")
+    detail = await client.get(f"/api/v1/skill-trees/{tree['id']}")
     assert detail.status_code == 200
     skills = detail.json()["skills"]
     assert len(skills) == 2
@@ -283,7 +283,7 @@ async def test_save_skill_tree_id_mismatch(client):
     tree = await create_skill_tree(client, headers)
 
     response = await client.put(
-        f"/skill-trees/save/{tree['id']}",
+        f"/api/v1/skill-trees/save/{tree['id']}",
         json={
             "id": 99999,
             "name": "Test Tree",
@@ -305,7 +305,7 @@ async def test_save_skill_tree_not_owner(client):
     headers_other = await auth_headers(client, username="other")
 
     response = await client.put(
-        f"/skill-trees/save/{tree['id']}",
+        f"/api/v1/skill-trees/save/{tree['id']}",
         json={
             "id": tree["id"],
             "name": "Test Tree",
@@ -320,7 +320,7 @@ async def test_save_skill_tree_not_owner(client):
 @pytest.mark.asyncio
 async def test_save_skill_tree_unauthenticated(client):
     response = await client.put(
-        "/skill-trees/save/1",
+        "/api/v1/skill-trees/save/1",
         json={"id": 1, "name": "X", "creator_username": "x", "skills": []},
     )
     assert response.status_code == 401
@@ -336,7 +336,7 @@ async def test_get_skill_trees_by_username(client):
     await create_skill_tree(client, headers, name="Tree A")
     await create_skill_tree(client, headers, name="Tree B")
 
-    response = await client.get("/skill-trees/skill-trees-user?username=testuser")
+    response = await client.get("/api/v1/skill-trees/skill-trees-user?username=testuser")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 2
@@ -344,7 +344,7 @@ async def test_get_skill_trees_by_username(client):
 
 @pytest.mark.asyncio
 async def test_get_skill_trees_by_username_empty(client):
-    response = await client.get("/skill-trees/skill-trees-user?username=nobody")
+    response = await client.get("/api/v1/skill-trees/skill-trees-user?username=nobody")
     assert response.status_code == 200
     assert response.json() == []
 
@@ -360,7 +360,7 @@ async def test_get_skill_trees_by_username_isolation(client):
     headers_bob = await auth_headers(client, username="bob")
     await create_skill_tree(client, headers_bob, name="Bob Tree")
 
-    response = await client.get("/skill-trees/skill-trees-user?username=alice")
+    response = await client.get("/api/v1/skill-trees/skill-trees-user?username=alice")
     data = response.json()
     assert len(data) == 1
     assert data[0]["name"] == "Alice Tree"
@@ -375,7 +375,7 @@ async def test_my_skill_trees(client):
     headers = await auth_headers(client)
     await create_skill_tree(client, headers, name="My Tree")
 
-    response = await client.get("/skill-trees/my-skill-trees", headers=headers)
+    response = await client.get("/api/v1/skill-trees/my-skill-trees", headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -384,7 +384,7 @@ async def test_my_skill_trees(client):
 
 @pytest.mark.asyncio
 async def test_my_skill_trees_unauthenticated(client):
-    response = await client.get("/skill-trees/my-skill-trees")
+    response = await client.get("/api/v1/skill-trees/my-skill-trees")
     assert response.status_code == 401
 
 
@@ -398,12 +398,12 @@ async def test_add_and_get_favorite(client):
     tree = await create_skill_tree(client, headers)
 
     response = await client.post(
-        f"/skill-trees/favorite/{tree['id']}", headers=headers
+        f"/api/v1/skill-trees/favorite/{tree['id']}", headers=headers
     )
     assert response.status_code == 200
 
     response = await client.get(
-        "/skill-trees/my-favorite-skill-trees", headers=headers
+        "/api/v1/skill-trees/my-favorite-skill-trees", headers=headers
     )
     assert response.status_code == 200
     data = response.json()
@@ -417,15 +417,15 @@ async def test_remove_favorite(client):
     headers = await auth_headers(client)
     tree = await create_skill_tree(client, headers)
 
-    await client.post(f"/skill-trees/favorite/{tree['id']}", headers=headers)
+    await client.post(f"/api/v1/skill-trees/favorite/{tree['id']}", headers=headers)
 
     response = await client.delete(
-        f"/skill-trees/favorite/{tree['id']}", headers=headers
+        f"/api/v1/skill-trees/favorite/{tree['id']}", headers=headers
     )
     assert response.status_code == 200
 
     response = await client.get(
-        "/skill-trees/my-favorite-skill-trees", headers=headers
+        "/api/v1/skill-trees/my-favorite-skill-trees", headers=headers
     )
     assert response.status_code == 200
     assert response.json() == []
@@ -433,19 +433,19 @@ async def test_remove_favorite(client):
 
 @pytest.mark.asyncio
 async def test_favorite_unauthenticated(client):
-    response = await client.post("/skill-trees/favorite/1")
+    response = await client.post("/api/v1/skill-trees/favorite/1")
     assert response.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_remove_favorite_unauthenticated(client):
-    response = await client.delete("/skill-trees/favorite/1")
+    response = await client.delete("/api/v1/skill-trees/favorite/1")
     assert response.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_my_favorites_unauthenticated(client):
-    response = await client.get("/skill-trees/my-favorite-skill-trees")
+    response = await client.get("/api/v1/skill-trees/my-favorite-skill-trees")
     assert response.status_code == 401
 
 
@@ -454,21 +454,21 @@ async def test_my_favorites_unauthenticated(client):
 
 @pytest.mark.asyncio
 async def test_trendings_empty(client):
-    response = await client.get("/skill-trees/trendings")
+    response = await client.get("/api/v1/skill-trees/trendings")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
 
 @pytest.mark.asyncio
 async def test_trendings_with_param(client):
-    response = await client.get("/skill-trees/trendings?timestamp=d")
+    response = await client.get("/api/v1/skill-trees/trendings?timestamp=d")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
 
 @pytest.mark.asyncio
 async def test_trendings_monthly(client):
-    response = await client.get("/skill-trees/trendings?timestamp=m")
+    response = await client.get("/api/v1/skill-trees/trendings?timestamp=m")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 

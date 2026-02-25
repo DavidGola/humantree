@@ -51,7 +51,7 @@ from app.schemas.skill_tree import (
 # ========== CRÉATION DU ROUTER ==========
 
 router = APIRouter(
-    prefix="/skill-trees",
+    prefix="/api/v1/skill-trees",
     tags=["Skill Trees"],
 )
 

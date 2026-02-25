@@ -15,11 +15,11 @@ async def test_duplicate_favorite_returns_409(client):
     tree = await create_skill_tree(client, headers)
 
     # Premier ajout : OK
-    resp = await client.post(f"/skill-trees/favorite/{tree['id']}", headers=headers)
+    resp = await client.post(f"/api/v1/skill-trees/favorite/{tree['id']}", headers=headers)
     assert resp.status_code == 200
 
     # Doublon : 409
-    resp = await client.post(f"/skill-trees/favorite/{tree['id']}", headers=headers)
+    resp = await client.post(f"/api/v1/skill-trees/favorite/{tree['id']}", headers=headers)
     assert resp.status_code == 409
     assert "favoris" in resp.json()["detail"].lower() or "déjà" in resp.json()["detail"].lower()
 
@@ -30,7 +30,7 @@ async def test_favorite_nonexistent_tree_returns_400(client):
     await register_user(client)
     headers = await auth_headers(client)
 
-    resp = await client.post("/skill-trees/favorite/999999", headers=headers)
+    resp = await client.post("/api/v1/skill-trees/favorite/999999", headers=headers)
     assert resp.status_code == 400
     assert "introuvable" in resp.json()["detail"].lower()
 
@@ -41,7 +41,7 @@ async def test_remove_nonexistent_favorite_returns_404(client):
     await register_user(client)
     headers = await auth_headers(client)
 
-    resp = await client.delete("/skill-trees/favorite/999999", headers=headers)
+    resp = await client.delete("/api/v1/skill-trees/favorite/999999", headers=headers)
     assert resp.status_code == 404
 
 
@@ -55,7 +55,7 @@ async def test_create_skill_tree_empty_name_returns_422(client):
     headers = await auth_headers(client)
 
     resp = await client.post(
-        "/skill-trees/",
+        "/api/v1/skill-trees/",
         json={"name": "", "description": "test"},
         headers=headers,
     )
@@ -69,7 +69,7 @@ async def test_create_skill_tree_name_too_long_returns_422(client):
     headers = await auth_headers(client)
 
     resp = await client.post(
-        "/skill-trees/",
+        "/api/v1/skill-trees/",
         json={"name": "x" * 101, "description": "test"},
         headers=headers,
     )
@@ -84,7 +84,7 @@ async def test_update_skill_tree_empty_name_returns_422(client):
     tree = await create_skill_tree(client, headers)
 
     resp = await client.patch(
-        f"/skill-trees/{tree['id']}",
+        f"/api/v1/skill-trees/{tree['id']}",
         json={"name": ""},
         headers=headers,
     )
@@ -99,7 +99,7 @@ async def test_update_skill_tree_name_too_long_returns_422(client):
     tree = await create_skill_tree(client, headers)
 
     resp = await client.patch(
-        f"/skill-trees/{tree['id']}",
+        f"/api/v1/skill-trees/{tree['id']}",
         json={"name": "x" * 101},
         headers=headers,
     )
@@ -117,7 +117,7 @@ async def test_create_duplicate_skill_tree_name_returns_409(client):
     await create_skill_tree(client, headers, name="Unique Name")
 
     resp = await client.post(
-        "/skill-trees/",
+        "/api/v1/skill-trees/",
         json={"name": "Unique Name"},
         headers=headers,
     )
@@ -133,7 +133,7 @@ async def test_update_skill_tree_to_duplicate_name_returns_409(client):
     tree_b = await create_skill_tree(client, headers, name="Name B")
 
     resp = await client.patch(
-        f"/skill-trees/{tree_b['id']}",
+        f"/api/v1/skill-trees/{tree_b['id']}",
         json={"name": "Name A"},
         headers=headers,
     )

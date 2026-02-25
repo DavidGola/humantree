@@ -80,8 +80,9 @@ jobs:
             git config --global --add safe.directory /srv/humantree
             cd /srv/humantree
             git pull origin main
+            sudo cp nginx/humantree.conf /etc/nginx/sites-available/humantree
+            sudo nginx -t && sudo systemctl reload nginx
             docker compose up -d --build
-            sudo systemctl reload nginx
             for i in {1..10}; do
               echo "Checking if the application is up... (attempt $i)"
               if curl -X GET http://127.0.0.1:8000/health -f && curl -X GET http://127.0.0.1:3000/ -f; then
