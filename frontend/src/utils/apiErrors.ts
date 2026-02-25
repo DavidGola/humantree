@@ -16,26 +16,28 @@ export function getApiErrorMessage(error: AxiosError): string {
 
   const status = error.response.status;
   const data = error.response.data as Record<string, unknown> | undefined;
+  const detail =
+    typeof data?.detail === "string" ? data.detail : null;
 
   switch (status) {
+    case 400:
+      return detail || "Requête invalide.";
     case 401:
       return "Session expirée. Veuillez vous reconnecter.";
     case 403:
       return "Vous n'avez pas les droits pour cette action.";
     case 404:
-      return "Ressource introuvable.";
+      return detail || "Ressource introuvable.";
     case 409:
-      return "Conflit : cette ressource existe déjà.";
+      return detail || "Conflit : cette ressource existe déjà.";
     case 422: {
       // Tenter d'extraire le détail de validation FastAPI
-      if (data?.detail) {
-        if (typeof data.detail === "string") return data.detail;
-        if (Array.isArray(data.detail)) {
-          return data.detail
-            .map((d: { msg?: string }) => d.msg || "")
-            .filter(Boolean)
-            .join(". ");
-        }
+      if (detail) return detail;
+      if (Array.isArray(data?.detail)) {
+        return (data.detail as Array<{ msg?: string }>)
+          .map((d) => d.msg || "")
+          .filter(Boolean)
+          .join(". ");
       }
       return "Données invalides. Vérifiez les champs du formulaire.";
     }
@@ -45,4 +47,13 @@ export function getApiErrorMessage(error: AxiosError): string {
       }
       return "Une erreur inattendue s'est produite.";
   }
+}
+
+/**
+ * Extrait le champ `detail` brut (string) d'une erreur Axios, ou null.
+ * Utile pour les composants qui branchent sur le contenu exact du detail.
+ */
+export function getApiErrorDetail(error: AxiosError): string | null {
+  const data = error.response?.data as Record<string, unknown> | undefined;
+  return typeof data?.detail === "string" ? data.detail : null;
 }

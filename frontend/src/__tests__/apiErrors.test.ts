@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { AxiosError } from "axios";
-import { getApiErrorMessage } from "../utils/apiErrors";
+import { getApiErrorMessage, getApiErrorDetail } from "../utils/apiErrors";
 
 function makeAxiosError(
   status?: number,
@@ -36,6 +36,18 @@ describe("getApiErrorMessage", () => {
     );
   });
 
+  it("retourne un message 400 sans detail", () => {
+    const error = makeAxiosError(400);
+    expect(getApiErrorMessage(error)).toBe("Requête invalide.");
+  });
+
+  it("retourne le detail du backend pour 400", () => {
+    const error = makeAxiosError(400, {
+      detail: "Le nom ne peut pas être vide.",
+    });
+    expect(getApiErrorMessage(error)).toBe("Le nom ne peut pas être vide.");
+  });
+
   it("retourne un message 401", () => {
     const error = makeAxiosError(401);
     expect(getApiErrorMessage(error)).toBe(
@@ -50,15 +62,33 @@ describe("getApiErrorMessage", () => {
     );
   });
 
-  it("retourne un message 404", () => {
+  it("retourne un message 404 sans detail", () => {
     const error = makeAxiosError(404);
     expect(getApiErrorMessage(error)).toBe("Ressource introuvable.");
   });
 
-  it("retourne un message 409", () => {
+  it("retourne le detail du backend pour 404", () => {
+    const error = makeAxiosError(404, {
+      detail: "Arbre de compétences introuvable.",
+    });
+    expect(getApiErrorMessage(error)).toBe(
+      "Arbre de compétences introuvable.",
+    );
+  });
+
+  it("retourne un message 409 sans detail", () => {
     const error = makeAxiosError(409);
     expect(getApiErrorMessage(error)).toBe(
       "Conflit : cette ressource existe déjà.",
+    );
+  });
+
+  it("retourne le detail du backend pour 409", () => {
+    const error = makeAxiosError(409, {
+      detail: "Un arbre avec ce nom existe déjà.",
+    });
+    expect(getApiErrorMessage(error)).toBe(
+      "Un arbre avec ce nom existe déjà.",
     );
   });
 
@@ -103,5 +133,33 @@ describe("getApiErrorMessage", () => {
     expect(getApiErrorMessage(error)).toBe(
       "Une erreur inattendue s'est produite.",
     );
+  });
+});
+
+describe("getApiErrorDetail", () => {
+  it("retourne le detail string", () => {
+    const error = makeAxiosError(409, {
+      detail: "Un arbre avec ce nom existe déjà.",
+    });
+    expect(getApiErrorDetail(error)).toBe(
+      "Un arbre avec ce nom existe déjà.",
+    );
+  });
+
+  it("retourne null quand pas de response", () => {
+    const error = makeAxiosError();
+    expect(getApiErrorDetail(error)).toBeNull();
+  });
+
+  it("retourne null quand detail est un tableau", () => {
+    const error = makeAxiosError(422, {
+      detail: [{ msg: "field required" }],
+    });
+    expect(getApiErrorDetail(error)).toBeNull();
+  });
+
+  it("retourne null quand pas de detail", () => {
+    const error = makeAxiosError(400);
+    expect(getApiErrorDetail(error)).toBeNull();
   });
 });

@@ -21,6 +21,7 @@ function SkillTreeListPage() {
   const [newTreeName, setNewTreeName] = useState("");
   const [newTreeDescription, setNewTreeDescription] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [nameError, setNameError] = useState("");
 
   const [activeTab, setActiveTab] = useState<Tab>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,10 +54,16 @@ function SkillTreeListPage() {
   const handleCreateTree = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newTreeName.trim()) {
-      toast.error("Le nom de l'arbre est requis.");
+    const trimmedName = newTreeName.trim();
+    if (!trimmedName) {
+      setNameError("Le nom de l'arbre est requis.");
       return;
     }
+    if (trimmedName.length > 100) {
+      setNameError("Le nom ne peut pas dépasser 100 caractères.");
+      return;
+    }
+    setNameError("");
 
     setIsCreating(true);
     skillTreeApi
@@ -225,6 +232,7 @@ function SkillTreeListPage() {
             setIsModalCreateOpen(false);
             setNewTreeName("");
             setNewTreeDescription("");
+            setNameError("");
           }}
         >
           <form className="" onSubmit={handleCreateTree}>
@@ -238,11 +246,22 @@ function SkillTreeListPage() {
               <input
                 id="name"
                 type="text"
+                maxLength={100}
                 placeholder="Nom de l'arbre de compétences"
-                className="shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-white dark:bg-slate-700"
+                className={`shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-white dark:bg-slate-700 ${
+                  nameError
+                    ? "border-red-500 dark:border-red-500"
+                    : "border-gray-300 dark:border-slate-600"
+                }`}
                 value={newTreeName}
-                onChange={(e) => setNewTreeName(e.target.value)}
+                onChange={(e) => {
+                  setNewTreeName(e.target.value);
+                  if (nameError) setNameError("");
+                }}
               />
+              {nameError && (
+                <p className="mt-1 text-sm text-red-500">{nameError}</p>
+              )}
             </div>
             <div className="mb-4">
               <label
