@@ -87,11 +87,31 @@ jobs:
               echo "Checking if the application is up... (attempt $i)"
               if curl -X GET http://127.0.0.1:8000/health -f && curl -X GET http://127.0.0.1:3000/ -f; then
                 echo "Application is up and running!"
-                exit 0
+                break
               else
                 echo "Application is not responding yet. Retrying in 5 seconds..."
                 sleep 5
               fi
+              if [ "$i" -eq 10 ]; then
+                echo "Application failed to start after 10 attempts."
+                exit 1
+              fi
             done
-            echo "Application failed to start after 10 attempts."
-            exit 1
+
+            echo "=== Smoke tests HTTPS ==="
+            # HTTPS doit répondre 200
+            curl -sf https://humantree.vps.webdock.cloud/ > /dev/null || { echo "FAIL: frontend HTTPS"; exit 1; }
+            echo "OK: frontend HTTPS"
+
+            curl -sf https://humantree.vps.webdock.cloud/api/v1/skill-trees/ > /dev/null || { echo "FAIL: backend HTTPS"; exit 1; }
+            echo "OK: backend API HTTPS"
+
+            # HTTP doit rediriger vers HTTPS (301)
+            HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' http://humantree.vps.webdock.cloud/)
+            if [ "$HTTP_CODE" != "301" ]; then
+              echo "FAIL: HTTP redirect expected 301, got $HTTP_CODE"
+              exit 1
+            fi
+            echo "OK: HTTP -> HTTPS redirect"
+
+            echo "=== All smoke tests passed ==="
