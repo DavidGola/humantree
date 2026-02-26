@@ -17,6 +17,13 @@ export const skillTreeApi = {
       .get<SkillTreeSimple[]>("/skill-trees/my-skill-trees/")
       .then((res) => res.data),
 
+  getByUsername: (username: string) =>
+    axiosInst
+      .get<SkillTreeSimple[]>("/skill-trees/skill-trees-user", {
+        params: { username },
+      })
+      .then((res) => res.data),
+
   getMyFavorites: () =>
     axiosInst
       .get<SkillTreeSimple[]>("/skill-trees/my-favorite-skill-trees/")
@@ -28,7 +35,9 @@ export const skillTreeApi = {
       .then((res) => res.data),
 
   create: (name: string, description: string, tags: string[] = []) =>
-    axiosInst.post("/skill-trees/", { name, description, tags }),
+    axiosInst
+      .post<SkillTreeSimple>("/skill-trees/", { name, description, tags })
+      .then((res) => res.data),
 
   save: (id: string, data: SkillTreeDetail) =>
     axiosInst.put(`/skill-trees/save/${id}/`, data),

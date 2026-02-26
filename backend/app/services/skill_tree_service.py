@@ -215,7 +215,7 @@ async def create_skill_tree(
         await _sync_tags(db, skill_tree_orm.id, data.tags)
 
     await db.commit()
-    await db.refresh(skill_tree_orm, attribute_names=["tags"])
+    await db.refresh(skill_tree_orm)
 
     return SkillTreeSimpleSchema.model_validate(skill_tree_orm)
 
@@ -263,7 +263,7 @@ async def update_skill_tree(
         logger.error("IntegrityError inattendue dans update_skill_tree: %s", e.orig)
         raise HTTPException(status_code=400, detail="Erreur d'intégrité des données")
 
-    await db.refresh(skill_tree, attribute_names=["tags"])
+    await db.refresh(skill_tree)
     return SkillTreeSimpleSchema.model_validate(skill_tree)
 
 
@@ -314,6 +314,7 @@ async def save_skill_tree(db: AsyncSession, skill_tree: SkillTreeSaveSchema) -> 
             description=skill.description,
             skill_tree_id=skill_tree.id,
             is_root=skill.is_root,
+            linked_tree_id=skill.linked_tree_id,
         )
         db.add(skill_orm)
         await db.flush()  # pour obtenir l'id généré
@@ -336,6 +337,7 @@ async def save_skill_tree(db: AsyncSession, skill_tree: SkillTreeSaveSchema) -> 
         existing_skill.description = skill.description
         existing_skill.skill_tree_id = skill_tree.id
         existing_skill.is_root = skill.is_root
+        existing_skill.linked_tree_id = skill.linked_tree_id
         skills_list.add(existing_skill.id)
 
     # Mettre à jour les dépendances de compétences

@@ -24,11 +24,12 @@ axiosInst.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (
-      error.response &&
-      error.response.status === 401 &&
-      !error.config.url.includes("/users/refresh/")
-    ) {
+    const url = error.config?.url || "";
+    const isAuthRoute =
+      url.includes("/users/refresh/") ||
+      url.includes("/users/login") ||
+      url.includes("/users/register");
+    if (error.response && error.response.status === 401 && !isAuthRoute) {
       // Handle unauthorized error (e.g., redirect to login)
       return axiosInst
         .post("/users/refresh/")

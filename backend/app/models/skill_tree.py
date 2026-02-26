@@ -20,7 +20,9 @@ class SkillTree(BaseModel):
         server_default=text("CURRENT_TIMESTAMP")
     )
 
-    skills: Mapped[list["Skill"]] = relationship(cascade="all, delete-orphan")
+    skills: Mapped[list["Skill"]] = relationship(
+        foreign_keys=[Skill.skill_tree_id], cascade="all, delete-orphan"
+    )
     tags: Mapped[list["Tag"]] = relationship(
         secondary="skill_tree_tags",
         lazy="selectin",

@@ -10,6 +10,7 @@ class SkillSchema(BaseModel):
     name: str
     description: str | None = None
     is_root: bool
+    linked_tree_id: int | None = None
     unlock_ids: list[int] = Field(default=[], validation_alias="unlocks")
 
     @field_validator("unlock_ids", mode="before")
@@ -42,6 +43,7 @@ class SkillCreateSchema(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: str | None = None
     skill_tree_id: int
+    linked_tree_id: int | None = None
 
 
 class SkillUpdateSchema(BaseModel):
@@ -60,4 +62,5 @@ class SkillSaveSchema(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: str | None = None
     is_root: bool
+    linked_tree_id: int | None = None
     unlock_ids: list[int] = Field(default=[])

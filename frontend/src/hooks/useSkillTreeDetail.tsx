@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useBlocker } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
@@ -17,12 +17,31 @@ import { getOutgoers, useKeyPress } from "@xyflow/react";
 import type { Connection } from "@xyflow/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+const BREADCRUMB_KEY = "treeBreadcrumb";
+
+export interface BreadcrumbEntry {
+  id: number;
+  name: string;
+}
+
+function readBreadcrumb(): BreadcrumbEntry[] {
+  try {
+    return JSON.parse(sessionStorage.getItem(BREADCRUMB_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function writeBreadcrumb(entries: BreadcrumbEntry[]) {
+  sessionStorage.setItem(BREADCRUMB_KEY, JSON.stringify(entries));
+}
+
 export function useSkillTreeDetail() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const [skillTree, setSkillTree] = useState<SkillTreeDetail | null>(null);
   const [skillTreeOriginal, setSkillTreeOriginal] =
-    useState<SkillTreeDetail | null>(null); // Pour comparer les modifications
+    useState<SkillTreeDetail | null>(null);
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -33,8 +52,14 @@ export function useSkillTreeDetail() {
 
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const [createSkillModalOpen, setCreateSkillModalOpen] = useState(false);
+  const [linkTreeModalOpen, setLinkTreeModalOpen] = useState(false);
+  const [createSubTreeModalOpen, setCreateSubTreeModalOpen] = useState(false);
   const [newSkillName, setNewSkillName] = useState("");
   const [newSkillDescription, setNewSkillDescription] = useState("");
+  const [newSubTreeName, setNewSubTreeName] = useState("");
+  const [newSubTreeDescription, setNewSubTreeDescription] = useState("");
+
+  const [breadcrumb, setBreadcrumb] = useState<BreadcrumbEntry[]>([]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSkillTreeModified, setIsSkillTreeModified] = useState(false);
@@ -43,7 +68,6 @@ export function useSkillTreeDetail() {
   const [userDetailSkill, setUserDetailSkill] =
     useState<UserDetailSkill | null>(null);
 
-
   const deletePressed = useKeyPress(["Delete", "Backspace"]);
 
   const { isDarkMode } = useTheme();
@@ -51,6 +75,33 @@ export function useSkillTreeDetail() {
   const navigate = useNavigate();
 
   const hasUnsavedChanges = isEditing && isSkillTreeModified;
+
+  // Lire le breadcrumb au chargement / changement d'id
+  // Si l'arbre courant apparaît dans le breadcrumb (ex: retour navigateur),
+  // tronquer jusqu'à cet index pour éviter "test / test"
+  useEffect(() => {
+    const stored = readBreadcrumb();
+    const currentId = Number(id);
+    const idx = stored.findIndex((entry) => entry.id === currentId);
+    if (idx !== -1) {
+      const trimmed = stored.slice(0, idx);
+      writeBreadcrumb(trimmed);
+      setBreadcrumb(trimmed);
+    } else {
+      setBreadcrumb(stored);
+    }
+  }, [id]);
+
+  // Reset le state local quand l'id change (navigation entre arbres)
+  useEffect(() => {
+    setSkillTree(null);
+    setSkillTreeOriginal(null);
+    setSelectedSkill(null);
+    setSelectedEdge(null);
+    setIsEditingTitle(false);
+    setIsEditingDesc(false);
+    setIsEditingTags(false);
+  }, [id]);
 
   // Quitter le mode édition si l'utilisateur se déconnecte
   useEffect(() => {
@@ -68,15 +119,9 @@ export function useSkillTreeDetail() {
       if (!prev) return prev;
       const hasSkill = prev.skill_ids.includes(skillId);
       if (isChecked && !hasSkill) {
-        return {
-          ...prev,
-          skill_ids: [...prev.skill_ids, skillId],
-        };
+        return { ...prev, skill_ids: [...prev.skill_ids, skillId] };
       } else if (!isChecked && hasSkill) {
-        return {
-          ...prev,
-          skill_ids: prev.skill_ids.filter((id) => id !== skillId),
-        };
+        return { ...prev, skill_ids: prev.skill_ids.filter((id) => id !== skillId) };
       }
       return prev;
     });
@@ -96,26 +141,75 @@ export function useSkillTreeDetail() {
         ? userApi.addSkillChecked(skillId)
         : userApi.removeSkillChecked(skillId);
       request
-        .then(() => {
-          changeUsersCheckedSkills(skillId, isChecked);
-        })
-        .catch((err) => {
-          toast.error(getApiErrorMessage(err));
-        });
+        .then(() => changeUsersCheckedSkills(skillId, isChecked))
+        .catch((err) => toast.error(getApiErrorMessage(err)));
     },
     [isAuthenticated, userDetailSkill],
   );
 
-  const graphData = useMemo(() => {
-    if (!skillTree) return { nodes: [], edges: [] };
-    return transformSkillstoGraph(
+  const [graphData, setGraphData] = useState<{ nodes: Node[]; edges: Edge[] }>({
+    nodes: [],
+    edges: [],
+  });
+
+  // Stats des sous-arbres liés : linkedTreeId -> { checked, total }
+  const [linkedTreeStats, setLinkedTreeStats] = useState<
+    Map<number, { checked: number; total: number }>
+  >(new Map());
+
+  useEffect(() => {
+    if (!skillTree) {
+      setLinkedTreeStats(new Map());
+      return;
+    }
+    const linkedTreeIds = skillTree.skills
+      .filter((s) => s.linked_tree_id !== null)
+      .map((s) => s.linked_tree_id!);
+    if (linkedTreeIds.length === 0) {
+      setLinkedTreeStats(new Map());
+      return;
+    }
+    let cancelled = false;
+    const checkedIds = new Set(userDetailSkill?.skill_ids ?? []);
+    Promise.all(
+      linkedTreeIds.map((treeId) =>
+        skillTreeApi
+          .getById(String(treeId))
+          .then((detail) => {
+            const total = detail.skills.length;
+            const checked = detail.skills.filter((s) => checkedIds.has(s.id)).length;
+            return [treeId, { checked, total }] as const;
+          })
+          .catch(() => [treeId, { checked: 0, total: 0 }] as const),
+      ),
+    ).then((entries) => {
+      if (!cancelled) setLinkedTreeStats(new Map(entries));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [skillTree, userDetailSkill]);
+
+  useEffect(() => {
+    if (!skillTree) {
+      setGraphData({ nodes: [], edges: [] });
+      return;
+    }
+    let cancelled = false;
+    transformSkillstoGraph(
       skillTree,
       isDarkMode,
       isEditing,
       userDetailSkill,
       handleCheckSkill,
-    );
-  }, [skillTree, isDarkMode, userDetailSkill, isEditing, handleCheckSkill]);
+      linkedTreeStats,
+    ).then((result) => {
+      if (!cancelled) setGraphData(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [skillTree, isDarkMode, userDetailSkill, isEditing, handleCheckSkill, linkedTreeStats]);
 
   const isValidConnection = useCallback(
     (connection: { source: string; target: string }) => {
@@ -125,15 +219,12 @@ export function useSkillTreeDetail() {
       if (!target) return false;
       const hasCycle = (node: Node, visited = new Set()) => {
         if (visited.has(node.id)) return false;
-
         visited.add(node.id);
-
         for (const outgoer of getOutgoers(node, nodes, edges)) {
           if (outgoer.id === connection.source) return true;
           if (hasCycle(outgoer, visited)) return true;
         }
       };
-
       if (target.id === connection.source) return false;
       return !hasCycle(target);
     },
@@ -162,7 +253,6 @@ export function useSkillTreeDetail() {
       return;
     }
 
-    // Dédupliquer
     const uniqueTags = [...new Set(newTags)];
     setSkillTree({ ...skillTree, tags: uniqueTags });
     setIsEditingTags(false);
@@ -196,22 +286,93 @@ export function useSkillTreeDetail() {
       name: newSkillName,
       description: newSkillDescription,
       unlock_ids: [],
-      is_root: skillTree?.skills.length === 0, // Si c'est la première compétence, elle est racine
+      linked_tree_id: null,
+      is_root: skillTree?.skills.length === 0,
     };
     setSkillTree((prev) => {
       if (!prev) return prev;
-      return {
-        ...prev,
-        skills: [...prev.skills, newSkill],
-      };
+      return { ...prev, skills: [...prev.skills, newSkill] };
     });
     setNewSkillName("");
     setNewSkillDescription("");
     setCreateSkillModalOpen(false);
   }
 
+  function handleLinkTree(sourceTreeId: number, treeName: string) {
+    if (!skillTree || !isAuthorizedToEdit()) return;
+    const newSkill: Skill = {
+      id: returnNewIdSkillNegative(skillTree),
+      name: treeName,
+      description: null,
+      unlock_ids: [],
+      linked_tree_id: sourceTreeId,
+      is_root: skillTree.skills.length === 0,
+    };
+    setSkillTree((prev) => {
+      if (!prev) return prev;
+      return { ...prev, skills: [...prev.skills, newSkill] };
+    });
+    setLinkTreeModalOpen(false);
+  }
+
+  async function handleCreateSubTree(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newSubTreeName.trim() || !skillTree || !isAuthorizedToEdit()) return;
+    try {
+      const newTree = await skillTreeApi.create(
+        newSubTreeName,
+        newSubTreeDescription || "",
+      );
+      const newSkill: Skill = {
+        id: returnNewIdSkillNegative(skillTree),
+        name: newSubTreeName,
+        description: null,
+        unlock_ids: [],
+        linked_tree_id: newTree.id,
+        is_root: skillTree.skills.length === 0,
+      };
+      setSkillTree((prev) =>
+        prev ? { ...prev, skills: [...prev.skills, newSkill] } : prev,
+      );
+      setCreateSubTreeModalOpen(false);
+      setNewSubTreeName("");
+      setNewSubTreeDescription("");
+      toast.success("Sous-arbre créé !");
+    } catch (err) {
+      toast.error(getApiErrorMessage(err));
+    }
+  }
+
+  function navigateToLinkedTree(treeId: number) {
+    if (!skillTree) return;
+    if (isSkillTreeModified) {
+      toast.error(
+        "Sauvegardez vos modifications avant de naviguer vers un sous-arbre.",
+      );
+      return;
+    }
+    const newBreadcrumb = [
+      ...breadcrumb,
+      { id: skillTree.id, name: skillTree.name },
+    ];
+    writeBreadcrumb(newBreadcrumb);
+    navigate(`/tree/${treeId}`);
+  }
+
+  function navigateBack(index: number) {
+    const target = breadcrumb[index];
+    if (!target) return;
+    const newBreadcrumb = breadcrumb.slice(0, index);
+    writeBreadcrumb(newBreadcrumb);
+    navigate(`/tree/${target.id}`);
+  }
+
+  function clearBreadcrumb() {
+    writeBreadcrumb([]);
+    setBreadcrumb([]);
+  }
+
   function handleDeleteSkill(skillId: number) {
-    // Test si le skill à supprimer est le root
     if (!skillTree || !isAuthorizedToEdit()) return;
     const skillToDelete = skillTree?.skills.find((s) => s.id === skillId);
     if (skillToDelete?.is_root) {
@@ -239,27 +400,24 @@ export function useSkillTreeDetail() {
   function handleSaveToBackend() {
     if (!skillTree || !isAuthorizedToEdit()) return;
     setIsSaving(true);
+    const saveId = String(skillTree.id);
     skillTreeApi
-      .save(id!, skillTree)
+      .save(saveId, skillTree)
       .then(() => {
         setSkillTreeOriginal(skillTree);
         setIsSkillTreeModified(false);
-        queryClient.invalidateQueries({ queryKey: ["skillTree", id] });
+        queryClient.invalidateQueries({ queryKey: ["skillTree", saveId] });
         toast.success("Données sauvegardées avec succès !");
       })
-      .catch((err) => {
-        toast.error(getApiErrorMessage(err));
-      })
-      .finally(() => {
-        setIsSaving(false);
-      });
+      .catch((err) => toast.error(getApiErrorMessage(err)))
+      .finally(() => setIsSaving(false));
   }
 
   function getNewRoot(newSkills: Skill[], skillId: number): Skill {
     const skill = newSkills.find((s) => s.id === skillId);
     if (!skill) throw new Error("Skill not found");
     const parent = newSkills.find((s) => s.unlock_ids.includes(skillId));
-    if (!parent) return skill; // Si pas de parent, c'est le root
+    if (!parent) return skill;
     return getNewRoot(newSkills, parent.id);
   }
 
@@ -267,54 +425,35 @@ export function useSkillTreeDetail() {
     if (!isEditing || !isAuthorizedToEdit()) return;
     const sourceId = parseInt(connection.source);
     const targetId = parseInt(connection.target);
-
     if (!skillTree) return;
 
-    // Étape 1 : vérifier que le source existe et que l'edge n'existe pas déjà
     const sourceSkill = skillTree.skills.find((s) => s.id === sourceId);
     if (!sourceSkill) return;
     if (sourceSkill.unlock_ids.includes(targetId)) return;
 
-    // Étape 2 : construire le nouveau tableau de skills avec l'edge ajouté
     let newSkills = skillTree.skills.map((s) =>
       s.id === sourceId ? { ...s, unlock_ids: [...s.unlock_ids, targetId] } : s,
     );
 
-    // Étape 3 : vérifier si le target est le root actuel
     const targetSkill = newSkills.find((s) => s.id === targetId);
     if (targetSkill?.is_root) {
-      // Étape 4 : trouver le nouveau root avec getNewRoot
       const newRoot = getNewRoot(newSkills, sourceId);
-      // Étape 5 : changer is_root dans newSkills
       newSkills = newSkills.map((s) => {
-        if (s.id === newRoot.id) {
-          return { ...s, is_root: true };
-        } else if (s.is_root && s.id !== newRoot.id) {
-          return { ...s, is_root: false };
-        }
+        if (s.id === newRoot.id) return { ...s, is_root: true };
+        else if (s.is_root && s.id !== newRoot.id) return { ...s, is_root: false };
         return s;
       });
     }
-
-    // Étape 6 : un seul setState
 
     setSkillTree({ ...skillTree, skills: newSkills });
   }
 
   function handleEdgeReconnect(oldEdge: Edge, newConnection: Connection) {
     if (!isEditing || !isAuthorizedToEdit()) return;
-    const oldSourceId = oldEdge.source;
-    const oldTargetId = oldEdge.target;
-    const newSourceId = newConnection.source;
-    const newTargetId = newConnection.target;
-
-    // Supprimer l'ancienne relation
-    handleEdgeDelete({ ...oldEdge, source: oldSourceId, target: oldTargetId });
-
-    // Ajouter la nouvelle relation
+    handleEdgeDelete({ ...oldEdge, source: oldEdge.source, target: oldEdge.target });
     handleEdgeCreate({
-      source: newSourceId,
-      target: newTargetId,
+      source: newConnection.source,
+      target: newConnection.target,
     } as Connection);
   }
 
@@ -330,12 +469,7 @@ export function useSkillTreeDetail() {
         ...prev,
         skills: prev.skills.map((s) =>
           s.id === sourceSkill.id
-            ? {
-                ...s,
-                unlock_ids: s.unlock_ids.filter(
-                  (id) => id !== parseInt(targetId),
-                ),
-              }
+            ? { ...s, unlock_ids: s.unlock_ids.filter((id) => id !== parseInt(targetId)) }
             : s,
         ),
       };
@@ -378,7 +512,6 @@ export function useSkillTreeDetail() {
     enabled: isAuthenticated,
   });
 
-  // Copier dans le state local (modifié localement lors du check/uncheck)
   useEffect(() => {
     if (fetchedUserDetailSkill) {
       setUserDetailSkill(fetchedUserDetailSkill);
@@ -398,10 +531,8 @@ export function useSkillTreeDetail() {
     }
   }, [deletePressed, selectedEdge]);
 
-  // Bloquer la navigation in-app (react-router) quand il y a des modifications non sauvegardées
   const blocker = useBlocker(hasUnsavedChanges);
 
-  // Bloquer la fermeture onglet / back navigateur / changement URL
   useEffect(() => {
     if (!hasUnsavedChanges) return;
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -420,13 +551,12 @@ export function useSkillTreeDetail() {
     queryFn: () => skillTreeApi.getById(id!),
   });
 
-  // Copier les données du serveur dans le state local pour l'édition
   useEffect(() => {
     if (fetchedSkillTree && !skillTree) {
       setSkillTree(fetchedSkillTree);
       setSkillTreeOriginal(fetchedSkillTree);
     }
-  }, [fetchedSkillTree]);
+  }, [fetchedSkillTree, skillTree]);
 
   const handleDeleteTree = () => {
     if (!skillTree || !isAuthorizedToEdit()) return;
@@ -434,24 +564,24 @@ export function useSkillTreeDetail() {
     skillTreeApi
       .remove(skillTree.id)
       .then(() => {
-        navigate("/");
         setIsModalDeleteOpen(false);
+        // Si on est dans un sous-arbre (breadcrumb), revenir au parent
+        if (breadcrumb.length > 0) {
+          const parent = breadcrumb[breadcrumb.length - 1];
+          const newBreadcrumb = breadcrumb.slice(0, -1);
+          writeBreadcrumb(newBreadcrumb);
+          toast.success("Sous-arbre supprimé.");
+          navigate(`/tree/${parent.id}`);
+        } else {
+          navigate("/");
+        }
       })
-      .catch((err) => {
-        toast.error(getApiErrorMessage(err));
-      })
-      .finally(() => {
-        setIsDeleting(false);
-      });
+      .catch((err) => toast.error(getApiErrorMessage(err)))
+      .finally(() => setIsDeleting(false));
   };
 
   return {
-    // État de chargement
-    loading: {
-      isLoading,
-      isError,
-    },
-    // Données du skill tree
+    loading: { isLoading, isError },
     tree: {
       skillTree,
       setSkillTree,
@@ -460,14 +590,12 @@ export function useSkillTreeDetail() {
       isDarkMode,
       isAuthorizedToEdit,
     },
-    // Sélection (skill ou edge)
     selection: {
       selectedSkill,
       setSelectedSkill,
       selectedEdge,
       setSelectedEdge,
     },
-    // Mode édition
     editing: {
       isEditing,
       setIsEditing,
@@ -487,7 +615,6 @@ export function useSkillTreeDetail() {
       handleSaveToBackend,
       isValidConnection,
     },
-    // CRUD skills
     skills: {
       handleSkillUpdate,
       handleCreateSkill,
@@ -499,20 +626,33 @@ export function useSkillTreeDetail() {
       newSkillDescription,
       setNewSkillDescription,
     },
-    // CRUD edges
+    linkedTrees: {
+      linkTreeModalOpen,
+      setLinkTreeModalOpen,
+      handleLinkTree,
+      createSubTreeModalOpen,
+      setCreateSubTreeModalOpen,
+      newSubTreeName,
+      setNewSubTreeName,
+      newSubTreeDescription,
+      setNewSubTreeDescription,
+      handleCreateSubTree,
+      navigateToLinkedTree,
+      navigateBack,
+      breadcrumb,
+      clearBreadcrumb,
+    },
     edges: {
       handleEdgeCreate,
       handleEdgeReconnect,
       handleEdgeDelete,
     },
-    // Suppression de l'arbre
     deleteTree: {
       isModalDeleteOpen,
       setIsModalDeleteOpen,
       isDeleting,
       handleDeleteTree,
     },
-    // Protection des modifications non sauvegardées
     unsavedGuard: {
       blocker,
       showExitEditModal,

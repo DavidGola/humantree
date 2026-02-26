@@ -5,6 +5,7 @@ export interface Skill {
   name: string;
   description: string | null;
   is_root: boolean;
+  linked_tree_id: number | null;
   unlock_ids: number[];
 }
 

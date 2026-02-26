@@ -27,6 +27,9 @@ class Skill(BaseModel):
         ForeignKey("skill_trees.id", ondelete="CASCADE")
     )
     is_root: Mapped[bool] = mapped_column(default=False, server_default=text("false"))
+    linked_tree_id: Mapped[int | None] = mapped_column(
+        ForeignKey("skill_trees.id", ondelete="SET NULL"), nullable=True, default=None
+    )
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     # Relationships

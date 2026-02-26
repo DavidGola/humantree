@@ -1,12 +1,15 @@
 import axiosInst from "./client";
-import type { User, UserDetailSkill } from "../types/user";
+import type { User, UserPublic, UserDetailSkill } from "../types/user";
 
 export const userApi = {
   getProfile: () =>
     axiosInst.get<User>("/users/me/profile").then((res) => res.data),
 
   getByUsername: (username: string) =>
-    axiosInst.get<User>(`/users/${username}/`).then((res) => res.data),
+    axiosInst.get<UserPublic>(`/users/${username}/`).then((res) => res.data),
+
+  updateProfile: (data: { bio?: string; avatar_url?: string }) =>
+    axiosInst.patch<User>("/users/me/profile", data).then((res) => res.data),
 
   getSkillsChecked: () =>
     axiosInst

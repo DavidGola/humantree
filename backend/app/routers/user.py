@@ -47,7 +47,7 @@ from app.schemas.user import (
     UserLoginSchema,
     UserUpdateSchema,
     UserOneSkillCheckedSchema,
-    UserPublicSchema,
+    UserPublicDetailSchema,
     UserFavoriteTreesSchema,
 )
 from app.schemas.auth import JWTTokenSchema
@@ -273,7 +273,7 @@ async def get_current_user_details(
 
 @router.get(
     "/{username}",
-    response_model=UserPublicSchema,
+    response_model=UserPublicDetailSchema,
     summary="Get user details by username",
     description="Retrieve user details based on their username",
 )

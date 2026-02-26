@@ -326,6 +326,127 @@ async def test_save_skill_tree_unauthenticated(client):
     assert response.status_code == 401
 
 
+# ========== SAVE WITH LINKED TREE ==========
+
+
+@pytest.mark.asyncio
+async def test_save_skill_tree_with_linked_tree(client):
+    """Un skill peut pointer vers un autre arbre via linked_tree_id."""
+    await register_user(client)
+    headers = await auth_headers(client)
+    parent = await create_skill_tree(client, headers, name="Parent")
+    child = await create_skill_tree(client, headers, name="Child")
+
+    response = await client.put(
+        f"/api/v1/skill-trees/save/{parent['id']}",
+        json={
+            "id": parent["id"],
+            "name": "Parent",
+            "creator_username": "testuser",
+            "skills": [
+                {
+                    "id": -1,
+                    "name": "Root",
+                    "is_root": True,
+                    "unlock_ids": [-2],
+                },
+                {
+                    "id": -2,
+                    "name": "Child",
+                    "is_root": False,
+                    "unlock_ids": [],
+                    "linked_tree_id": child["id"],
+                },
+            ],
+        },
+        headers=headers,
+    )
+    assert response.status_code == 200
+
+    detail = await client.get(f"/api/v1/skill-trees/{parent['id']}")
+    skills = detail.json()["skills"]
+    linked_skill = next(s for s in skills if s["name"] == "Child")
+    assert linked_skill["linked_tree_id"] == child["id"]
+
+
+@pytest.mark.asyncio
+async def test_delete_linked_tree_nullifies_skill(client):
+    """Supprimer un arbre lié met linked_tree_id à NULL (ondelete SET NULL)."""
+    await register_user(client)
+    headers = await auth_headers(client)
+    parent = await create_skill_tree(client, headers, name="Parent")
+    child = await create_skill_tree(client, headers, name="Child")
+
+    # Sauvegarder parent avec un skill lié à child
+    await client.put(
+        f"/api/v1/skill-trees/save/{parent['id']}",
+        json={
+            "id": parent["id"],
+            "name": "Parent",
+            "creator_username": "testuser",
+            "skills": [
+                {
+                    "id": -1,
+                    "name": "Linked Skill",
+                    "is_root": True,
+                    "unlock_ids": [],
+                    "linked_tree_id": child["id"],
+                },
+            ],
+        },
+        headers=headers,
+    )
+
+    # Supprimer l'arbre child
+    response = await client.delete(
+        f"/api/v1/skill-trees/{child['id']}", headers=headers
+    )
+    assert response.status_code == 204
+
+    # Vérifier que le skill parent a linked_tree_id = null
+    detail = await client.get(f"/api/v1/skill-trees/{parent['id']}")
+    skills = detail.json()["skills"]
+    assert len(skills) == 1
+    assert skills[0]["linked_tree_id"] is None
+
+
+@pytest.mark.asyncio
+async def test_save_does_not_copy_linked_tree(client):
+    """Le save ne crée plus de copie — linked_tree_id reste l'original."""
+    await register_user(client)
+    headers = await auth_headers(client)
+    parent = await create_skill_tree(client, headers, name="Parent")
+    other = await create_skill_tree(client, headers, name="Other")
+
+    await client.put(
+        f"/api/v1/skill-trees/save/{parent['id']}",
+        json={
+            "id": parent["id"],
+            "name": "Parent",
+            "creator_username": "testuser",
+            "skills": [
+                {
+                    "id": -1,
+                    "name": "Link",
+                    "is_root": True,
+                    "unlock_ids": [],
+                    "linked_tree_id": other["id"],
+                },
+            ],
+        },
+        headers=headers,
+    )
+
+    detail = await client.get(f"/api/v1/skill-trees/{parent['id']}")
+    skills = detail.json()["skills"]
+    # linked_tree_id doit pointer vers l'original, pas une copie
+    assert skills[0]["linked_tree_id"] == other["id"]
+
+    # Vérifier qu'aucun autre arbre n'a été créé
+    all_trees = await client.get("/api/v1/skill-trees/")
+    assert len(all_trees.json()) == 2
+
+
 # ========== GET SKILL TREES BY USERNAME ==========
 
 

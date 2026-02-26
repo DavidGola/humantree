@@ -8,6 +8,7 @@ import { useFavorites } from "../hooks/useFavorites";
 
 import { Modal } from "../components/Modal";
 import { Button } from "../components/Button";
+import GenerateTreeModal from "../components/GenerateTreeModal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { skillTreeApi } from "../api/skillTreeApi";
 
@@ -17,6 +18,7 @@ function SkillTreeListPage() {
   const { favoriteTrees, handleFavorite } = useFavorites();
 
   const [isModalCreateOpen, setIsModalCreateOpen] = useState(false);
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
 
   const [newTreeName, setNewTreeName] = useState("");
   const [newTreeDescription, setNewTreeDescription] = useState("");
@@ -192,7 +194,18 @@ function SkillTreeListPage() {
         )}
       </nav>
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-end mb-8">
+        <div className="flex justify-end gap-3 mb-8">
+          {isAuthenticated && (
+            <button
+              className="bg-purple-600 hover:bg-purple-700 text-white font-medium px-5 h-14 rounded-full text-sm shadow-lg hover:shadow-xl transition flex items-center gap-2"
+              onClick={() => setIsAIModalOpen(true)}
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Générer par IA
+            </button>
+          )}
           <button
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold w-14 h-14 rounded-full text-3xl shadow-lg hover:shadow-xl transition flex items-center justify-center leading-none pb-0.5"
             onClick={() => {
@@ -289,6 +302,10 @@ function SkillTreeListPage() {
           </div>
         )}
       </div>
+      {/* Modal IA */}
+      {isAIModalOpen && (
+        <GenerateTreeModal onClose={() => setIsAIModalOpen(false)} />
+      )}
       {/* Modal pour créer un nouvel arbre de compétences */}
       {isModalCreateOpen && (
         <Modal

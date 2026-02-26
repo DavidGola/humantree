@@ -9,14 +9,27 @@ class UserSchema(BaseModel):
     id: int
     username: str
     email: str
+    bio: str | None = None
+    avatar_url: str | None = None
     created_at: datetime | None = None
 
 
 class UserPublicSchema(BaseModel):
-    """Schema representing public details of a user."""
+    """Schema representing public details of a user (minimal)."""
 
     model_config = ConfigDict(from_attributes=True)
     username: str
+
+
+class UserPublicDetailSchema(BaseModel):
+    """Schema representing public details of a user with stats."""
+
+    username: str
+    bio: str | None = None
+    avatar_url: str | None = None
+    created_at: datetime | None = None
+    trees_count: int = 0
+    skills_checked_count: int = 0
 
 
 class UserCreateSchema(BaseModel):
@@ -37,6 +50,8 @@ class UserUpdateSchema(BaseModel):
     username: str | None = None
     email: str | None = None
     password: str | None = None
+    bio: str | None = Field(None, max_length=500)
+    avatar_url: str | None = Field(None, max_length=500)
 
 
 class UserLoginSchema(BaseModel):

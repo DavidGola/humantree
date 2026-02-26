@@ -2,7 +2,7 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from sqlalchemy.exc import IntegrityError
 from app.models.user_check_skill import UserCheckSkill
 from app.models.user_favorite_trees import UserFavoriteTrees
@@ -14,9 +14,10 @@ from app.schemas.user import (
     UserCreateSchema,
     UserLoginSchema,
     UserCheckSkillsSchema,
-    UserPublicSchema,
+    UserPublicDetailSchema,
     UserFavoriteTreesSchema,
 )
+from app.models.skill_tree import SkillTree
 from app.models.user import User
 
 
@@ -120,6 +121,10 @@ async def update_user(
         user.password_hash = hashpw(data.password.encode("utf-8"), gensalt()).decode(
             "utf-8"
         )
+    if data.bio is not None:
+        user.bio = data.bio
+    if data.avatar_url is not None:
+        user.avatar_url = data.avatar_url
 
     await db.commit()
     await db.refresh(user)
@@ -153,14 +158,34 @@ async def get_user_username(db: AsyncSession, user_id: int) -> str | None:
 
 async def get_user_public_by_username(
     db: AsyncSession, username: str
-) -> UserPublicSchema | None:
-    """Récupère les détails d'un utilisateur à partir de son nom d'utilisateur."""
+) -> UserPublicDetailSchema | None:
+    """Récupère les détails publics d'un utilisateur avec stats."""
     stmt = select(User).where(User.username == username)
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
-    if user:
-        return UserPublicSchema.model_validate(user)
-    return None
+    if user is None:
+        return None
+
+    # Count trees created
+    trees_stmt = select(func.count()).select_from(SkillTree).where(
+        SkillTree.creator_username == username
+    )
+    trees_count = (await db.execute(trees_stmt)).scalar() or 0
+
+    # Count skills checked
+    skills_stmt = select(func.count()).select_from(UserCheckSkill).where(
+        UserCheckSkill.user_id == user.id
+    )
+    skills_checked_count = (await db.execute(skills_stmt)).scalar() or 0
+
+    return UserPublicDetailSchema(
+        username=user.username,
+        bio=user.bio,
+        avatar_url=user.avatar_url,
+        created_at=user.created_at,
+        trees_count=trees_count,
+        skills_checked_count=skills_checked_count,
+    )
 
 
 async def get_user_by_id(db: AsyncSession, user_id: int) -> UserSchema | None:

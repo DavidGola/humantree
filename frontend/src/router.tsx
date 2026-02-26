@@ -6,6 +6,7 @@ const SkillTreeListPage = lazy(() => import("./pages/SkillTreeListPage"));
 const SkillTreeDetailPage = lazy(() => import("./pages/SkillTreeDetailPage"));
 const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const SearchPage = lazy(() => import("./pages/SearchPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 export const router = createBrowserRouter([
@@ -16,6 +17,7 @@ export const router = createBrowserRouter([
       { index: true, element: <SkillTreeListPage /> },
       { path: "tree/:id", element: <SkillTreeDetailPage /> },
       { path: "user/:username", element: <UserProfilePage /> },
+      { path: "search", element: <SearchPage /> },
       { path: "register", element: <RegisterPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],

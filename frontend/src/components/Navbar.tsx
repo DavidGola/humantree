@@ -1,17 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { HelpModal } from "./HelpModal";
 
 export const Navbar = () => {
   const { isAuthenticated, isLoggingIn, username, login, logout } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [mail_or_username, setMailOrUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [helpOpen, setHelpOpen] = useState(false);
   const navigate = useNavigate();
 
-  return (
+  useEffect(() => {
+    if (!localStorage.getItem("has_seen_help")) {
+      setHelpOpen(true);
+    }
+  }, []);
+
+  const closeHelp = () => {
+    setHelpOpen(false);
+    localStorage.setItem("has_seen_help", "true");
+  };
+
+  return (<>
     <nav className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 transition-colors duration-200">
       <div className="container mx-auto flex items-center justify-between px-6 py-3">
         {/* Logo */}
@@ -22,6 +35,22 @@ export const Navbar = () => {
           <img src="/favicon.svg" alt="HumanTree" className="w-7 h-7" />
           HumanTree
         </a>
+
+        {/* Navigation */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => navigate("/")}
+            className="px-3 py-1.5 text-sm font-medium rounded-md text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors duration-200"
+          >
+            Arbres
+          </button>
+          <button
+            onClick={() => navigate("/search")}
+            className="px-3 py-1.5 text-sm font-medium rounded-md text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors duration-200"
+          >
+            Recherche
+          </button>
+        </div>
 
         {/* Right side: auth UI + dark mode toggle */}
         <div className="flex items-center gap-3">
@@ -93,8 +122,19 @@ export const Navbar = () => {
           >
             {isDarkMode ? "☀" : "🌙"}
           </button>
+
+          {/* Help button */}
+          <button
+            onClick={() => setHelpOpen(true)}
+            className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600 flex items-center justify-center text-sm font-bold transition-all duration-200"
+          >
+            ?
+          </button>
         </div>
       </div>
     </nav>
+
+    {helpOpen && <HelpModal onClose={closeHelp} />}
+  </>
   );
 };
