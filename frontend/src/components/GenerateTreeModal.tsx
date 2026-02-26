@@ -29,12 +29,11 @@ export default function GenerateTreeModal({ onClose }: GenerateTreeModalProps) {
   const createMutation = useMutation({
     mutationFn: async (tree: GeneratedTree) => {
       // 1. Créer l'arbre vide
-      const res = await skillTreeApi.create(
+      const created = await skillTreeApi.create(
         tree.name,
         tree.description,
         tree.tags
       );
-      const created = res.data;
       // 2. Sauvegarder avec les skills (IDs négatifs gérés par le backend)
       await skillTreeApi.save(String(created.id), {
         ...created,

@@ -3,7 +3,11 @@ import type { AxiosError } from "axios";
 /**
  * Extrait un message d'erreur user-friendly en français depuis une erreur Axios.
  */
-export function getApiErrorMessage(error: AxiosError): string {
+export function getApiErrorMessage(err: unknown): string {
+  if (!(err instanceof Error && "isAxiosError" in err)) {
+    return "Une erreur inattendue s'est produite.";
+  }
+  const error = err as AxiosError;
   // Timeout
   if (error.code === "ECONNABORTED") {
     return "Le serveur met trop de temps à répondre. Réessayez plus tard.";

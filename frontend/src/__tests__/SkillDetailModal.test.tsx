@@ -32,6 +32,7 @@ const mockSkill: Skill = {
   name: "JavaScript",
   description: "<p>Une description</p>",
   is_root: false,
+  linked_tree_id: null,
   unlock_ids: [2, 3],
 };
 
