@@ -41,7 +41,7 @@ describe("Button", () => {
   it("applique le style primary", () => {
     render(<Button variant="primary">Primary</Button>);
     const btn = screen.getByRole("button");
-    expect(btn.className).toContain("bg-blue-600");
+    expect(btn.className).toContain("bg-primary-600");
   });
 
   it("applique le style danger", () => {

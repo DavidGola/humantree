@@ -109,15 +109,15 @@ function RegisterPage() {
   }, [isAuthenticated, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-slate-900">
-      <div className="max-w-md w-full bg-white dark:bg-slate-800 p-8 rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="max-w-md w-full surface-strong backdrop-blur-md p-8 rounded-xl">
+        <h2 className="text-2xl font-display font-bold mb-6 text-gray-900 dark:text-white">
           Créer un compte
         </h2>
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
             <label
-              className="block text-sm font-bold mb-1 text-gray-700 dark:text-slate-300"
+              className="block text-sm font-display font-semibold mb-1.5 text-gray-700 dark:text-slate-300"
               htmlFor="username"
             >
               Nom d'utilisateur
@@ -125,14 +125,14 @@ function RegisterPage() {
             <input
               id="username"
               type="text"
-              className={`border ${errors.username ? "border-red-500" : "border-gray-300"} w-full px-3 py-2 rounded-md bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 ${errors.username ? "focus:ring-red-500" : "focus:ring-blue-500"} focus:border-transparent transition-all duration-200`}
+              className={`w-full px-3 py-2.5 rounded-lg surface-input text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 ${errors.username ? "!border-red-500" : ""}`}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
           </div>
           <div>
             <label
-              className="block text-sm font-bold  mb-1 text-gray-700 dark:text-slate-300"
+              className="block text-sm font-display font-semibold mb-1.5 text-gray-700 dark:text-slate-300"
               htmlFor="email"
             >
               Email
@@ -140,14 +140,14 @@ function RegisterPage() {
             <input
               id="email"
               type="email"
-              className={`border ${errors.email ? "border-red-500" : "border-gray-300"} w-full px-3 py-2 rounded-md bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 ${errors.email ? "focus:ring-red-500" : "focus:ring-blue-500"} focus:border-transparent transition-all duration-200`}
+              className={`w-full px-3 py-2.5 rounded-lg surface-input text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 ${errors.email ? "!border-red-500" : ""}`}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
           <div>
             <label
-              className="block text-sm font-bold mb-1 text-gray-700 dark:text-slate-300"
+              className="block text-sm font-display font-semibold mb-1.5 text-gray-700 dark:text-slate-300"
               htmlFor="password"
             >
               Mot de passe
@@ -155,14 +155,14 @@ function RegisterPage() {
             <input
               id="password"
               type="password"
-              className={`border ${errors.password ? "border-red-500" : "border-gray-300"} w-full px-3 py-2 rounded-md bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 ${errors.password ? "focus:ring-red-500" : "focus:ring-blue-500"} focus:border-transparent transition-all duration-200`}
+              className={`w-full px-3 py-2.5 rounded-lg surface-input text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 ${errors.password ? "!border-red-500" : ""}`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
           <div>
             <label
-              className="block text-sm font-bold mb-1 text-gray-700 dark:text-slate-300"
+              className="block text-sm font-display font-semibold mb-1.5 text-gray-700 dark:text-slate-300"
               htmlFor="confirmPassword"
             >
               Confirmer le mot de passe
@@ -170,14 +170,14 @@ function RegisterPage() {
             <input
               id="confirmPassword"
               type="password"
-              className={`border ${errors.confirmPassword ? "border-red-500" : "border-gray-300"} w-full px-3 py-2 rounded-md bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 ${errors.confirmPassword ? "focus:ring-red-500" : "focus:ring-blue-500"} focus:border-transparent transition-all duration-200`}
+              className={`w-full px-3 py-2.5 rounded-lg surface-input text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 ${errors.confirmPassword ? "!border-red-500" : ""}`}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
           </div>
           <button
             type="submit"
-            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 transition-all duration-200"
+            className="w-full py-2.5 px-4 bg-primary-600 hover:bg-primary-700 text-white font-display font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all duration-200"
           >
             S'inscrire
           </button>

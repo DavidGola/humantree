@@ -29,35 +29,31 @@ export const Modal = ({
   }, [onClose]);
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
+      className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-[60]"
       onClick={onClose}
     >
       <div
-        className={`relative rounded-xl shadow-lg p-6 w-full bg-white dark:bg-slate-800 ${sizeClasses[size]}`}
+        className={`relative rounded-2xl p-6 w-full surface-strong overflow-hidden animate-modal-enter shadow-xl ${sizeClasses[size]}`}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Gradient top bar */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600" />
+
+        {/* Close button - always top right */}
+        <button
+          className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-primary-200/30 dark:hover:bg-slate-700 focus:outline-none transition-all duration-200"
+          onClick={onClose}
+          aria-label="Fermer la modale"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
         {title && (
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">
-              {title}
-            </h2>
-            <button
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none transition-colors duration-200 text-2xl leading-none"
-              onClick={onClose}
-              aria-label="Fermer la modale"
-            >
-              &times;
-            </button>
-          </div>
-        )}
-        {!title && (
-          <button
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none transition-colors duration-200 text-2xl leading-none"
-            onClick={onClose}
-            aria-label="Fermer la modale"
-          >
-            &times;
-          </button>
+          <h2 className="text-xl font-display font-bold text-gray-800 dark:text-white mb-5 pt-1 pr-8">
+            {title}
+          </h2>
         )}
         {children}
       </div>

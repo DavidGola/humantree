@@ -16,6 +16,8 @@ from app.limiter import limiter
 
 # SQLAlchemy
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
+from app.models.user_check_skill import UserCheckSkill
 
 # Database
 from app.database import get_db
@@ -268,7 +270,21 @@ async def get_current_user_details(
     user = await get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user
+    stmt = (
+        select(func.count())
+        .select_from(UserCheckSkill)
+        .where(UserCheckSkill.user_id == user_id)
+    )
+    skills_count = (await db.execute(stmt)).scalar() or 0
+    return UserSchema(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        bio=user.bio,
+        avatar_url=user.avatar_url,
+        created_at=user.created_at,
+        skills_checked_count=skills_count,
+    )
 
 
 @router.get(

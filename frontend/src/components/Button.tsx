@@ -1,7 +1,7 @@
 type Variant = "primary" | "secondary" | "danger" | "success";
 
 const variantStyles: Record<Variant, string> = {
-  primary: "text-white font-medium bg-blue-600 hover:bg-blue-700",
+  primary: "text-white font-medium bg-primary-600 hover:bg-primary-700",
   secondary:
     "text-gray-600 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600",
   danger: "text-white font-medium bg-red-600 hover:bg-red-700",
@@ -26,7 +26,7 @@ export const Button = ({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`px-4 py-2 text-sm rounded-lg transition-colors duration-200 ${variantStyles[variant]} disabled:opacity-50 disabled:cursor-not-allowed`}
+      className={`px-4 py-2 text-sm rounded-lg font-display font-semibold transition-colors duration-200 ${variantStyles[variant]} disabled:opacity-50 disabled:cursor-not-allowed`}
     >
       {children}
     </button>

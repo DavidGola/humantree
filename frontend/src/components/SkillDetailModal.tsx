@@ -70,22 +70,27 @@ export const SkillDetailModal = ({
   return (
     <Modal onClose={onClose} size="large">
       <div className="flex flex-col min-h-[450px] max-h-[calc(85vh-3rem)]">
-        {/* Title */}
-        <div className="mb-6">
-          {isEditing ? (
-            <input
-              type="text"
-              value={editedName}
-              onChange={(e) => setEditedName(e.target.value)}
-              className="w-full text-3xl font-bold bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-slate-600"
-              placeholder="Nom de la compétence"
-            />
-          ) : (
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-              {skill.name}
-            </h2>
-          )}
+        {/* Header with status badge */}
+        <div className="mb-2">
+          <div className="flex items-start justify-between gap-4">
+            {isEditing ? (
+              <input
+                type="text"
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                className="flex-1 text-3xl font-display font-bold bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-slate-600"
+                placeholder="Nom de la compétence"
+              />
+            ) : (
+              <h2 className="text-3xl font-display font-bold text-gray-900 dark:text-white">
+                {skill.name}
+              </h2>
+            )}
+          </div>
         </div>
+
+        {/* Gradient separator */}
+        <div className="h-[2px] bg-gradient-to-r from-primary-400 to-primary-600 rounded-full mb-4" />
 
         {/* AI enrich button */}
         {isEditing && (
@@ -94,7 +99,7 @@ export const SkillDetailModal = ({
               type="button"
               onClick={handleEnrich}
               disabled={isEnriching || !editedName.trim()}
-              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors duration-200 text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/40 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors duration-200 text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 hover:bg-primary-100 dark:hover:bg-primary-900/40 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isEnriching ? (
                 <>

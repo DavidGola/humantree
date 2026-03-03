@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiKeyApi, type ApiKeyInfo } from "../api/apiKeyApi";
+import { Button } from "./Button";
 
 const PROVIDERS = [
-  { id: "google", label: "Google (Gemini) — gratuit" },
-  { id: "anthropic", label: "Anthropic (Claude)" },
-  { id: "openai", label: "OpenAI (GPT)" },
+  { id: "google", label: "Google (Gemini)", sub: "gratuit", icon: "G" },
+  { id: "anthropic", label: "Anthropic (Claude)", sub: null, icon: "A" },
+  { id: "openai", label: "OpenAI (GPT)", sub: null, icon: "O" },
 ] as const;
 
 export default function ApiKeySettings() {
@@ -39,49 +40,86 @@ export default function ApiKeySettings() {
 
   return (
     <div className="mt-10">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-4">
+      <h2 className="text-xs font-display font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-4">
         Clés API (IA)
       </h2>
-      <div className="space-y-4">
-        {PROVIDERS.map(({ id, label }) => {
+      <div className="space-y-3">
+        {PROVIDERS.map(({ id, label, sub, icon }) => {
           const isConfigured = configuredProviders.has(id);
           const keyInfo = keys.find((k: ApiKeyInfo) => k.provider === id);
 
           return (
             <div
               key={id}
-              className="p-4 rounded-lg border border-gray-200 dark:border-slate-700"
+              className={`rounded-xl border transition-colors duration-200 overflow-hidden ${
+                isConfigured
+                  ? "border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/30 dark:bg-emerald-950/20"
+                  : "surface-card"
+              }`}
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-800 dark:text-white">
-                    {label}
-                  </p>
-                  {isConfigured && keyInfo && (
-                    <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
-                      Configurée le{" "}
-                      {new Date(keyInfo.created_at).toLocaleDateString("fr-FR")}
+              <div className="flex items-center gap-4 p-4">
+                {/* Provider icon */}
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-display font-bold text-sm shrink-0 ${
+                  isConfigured
+                    ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
+                    : "bg-gray-100 dark:bg-slate-700/50 text-gray-400 dark:text-slate-500"
+                }`}>
+                  {icon}
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-display font-semibold text-gray-800 dark:text-white">
+                      {label}
                     </p>
+                    {sub && (
+                      <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400">
+                        {sub}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      isConfigured ? "bg-emerald-500" : "bg-gray-300 dark:bg-slate-600"
+                    }`} />
+                    <p className={`text-xs ${
+                      isConfigured
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-gray-400 dark:text-slate-500"
+                    }`}>
+                      {isConfigured && keyInfo
+                        ? `Active depuis le ${new Date(keyInfo.created_at).toLocaleDateString("fr-FR")}`
+                        : "Non configurée"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {isConfigured && savingProvider !== id && (
+                    <button
+                      onClick={() => deleteMutation.mutate(id)}
+                      disabled={deleteMutation.isPending}
+                      className="px-3 py-1.5 text-xs font-medium rounded-lg text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    >
+                      Supprimer
+                    </button>
                   )}
-                  {!isConfigured && (
-                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
-                      Non configurée
-                    </p>
+                  {savingProvider !== id && (
+                    <button
+                      onClick={() => setSavingProvider(id)}
+                      className="px-3 py-1.5 text-xs font-display font-semibold rounded-lg text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 border border-primary-200 dark:border-primary-800/50 transition-colors"
+                    >
+                      {isConfigured ? "Remplacer" : "Configurer"}
+                    </button>
                   )}
                 </div>
-                {isConfigured && (
-                  <button
-                    onClick={() => deleteMutation.mutate(id)}
-                    disabled={deleteMutation.isPending}
-                    className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors"
-                  >
-                    Supprimer
-                  </button>
-                )}
               </div>
 
-              {savingProvider === id ? (
-                <div className="mt-3 flex gap-2">
+              {/* Input row */}
+              {savingProvider === id && (
+                <div className="px-4 pb-4 flex gap-2">
                   <input
                     type="password"
                     value={inputKey[id] ?? ""}
@@ -89,9 +127,11 @@ export default function ApiKeySettings() {
                       setInputKey((prev) => ({ ...prev, [id]: e.target.value }))
                     }
                     placeholder="sk-..."
-                    className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    autoFocus
+                    className="flex-1 px-3 py-2 text-sm rounded-lg surface-input text-gray-800 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   />
-                  <button
+                  <Button
+                    variant="primary"
                     onClick={() =>
                       saveMutation.mutate({
                         provider: id,
@@ -101,30 +141,24 @@ export default function ApiKeySettings() {
                     disabled={
                       saveMutation.isPending || !(inputKey[id]?.length)
                     }
-                    className="px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
                   >
                     {saveMutation.isPending ? "..." : "Sauvegarder"}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="secondary"
                     onClick={() => setSavingProvider(null)}
-                    className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
                   >
                     Annuler
-                  </button>
+                  </Button>
                 </div>
-              ) : (
-                <button
-                  onClick={() => setSavingProvider(id)}
-                  className="mt-3 text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  {isConfigured ? "Remplacer la clé" : "Ajouter une clé"}
-                </button>
               )}
 
               {saveMutation.isError && savingProvider === id && (
-                <p className="mt-2 text-xs text-red-500">
-                  Erreur : clé invalide ou problème serveur.
-                </p>
+                <div className="px-4 pb-3">
+                  <p className="text-xs text-red-500">
+                    Erreur : clé invalide ou problème serveur.
+                  </p>
+                </div>
               )}
             </div>
           );

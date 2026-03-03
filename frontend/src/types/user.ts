@@ -5,6 +5,7 @@ export interface User {
   bio: string | null;
   avatar_url: string | null;
   created_at: string | null;
+  skills_checked_count: number;
 }
 
 export interface UserPublic {

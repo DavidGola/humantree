@@ -39,7 +39,7 @@ export function LinkTreeModal({
         placeholder="Rechercher un arbre..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="w-full border px-3 py-2 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-teal-500 border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+        className="w-full px-3 py-2.5 text-sm rounded-lg mb-4 surface-input focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
       />
       <div className="overflow-y-auto flex-1 space-y-2">
         {loading ? (
@@ -55,9 +55,9 @@ export function LinkTreeModal({
             <button
               key={tree.id}
               onClick={() => onSelect(tree.id, tree.name)}
-              className="w-full text-left px-4 py-3 rounded-lg border transition-colors duration-200 border-gray-200 dark:border-slate-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 hover:border-teal-300 dark:hover:border-teal-500"
+              className="w-full text-left px-4 py-3 rounded-lg surface-card hover:!bg-[var(--surface-hover)] transition-colors duration-200"
             >
-              <p className="font-medium text-gray-900 dark:text-white">
+              <p className="font-display font-medium text-gray-900 dark:text-white">
                 {tree.name}
               </p>
               {tree.description && (

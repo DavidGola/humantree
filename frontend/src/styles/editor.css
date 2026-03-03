@@ -45,11 +45,11 @@
 
 /* Links in editor */
 .ProseMirror a {
-  color: #3b82f6;
+  color: #7c3aed;
   text-decoration: underline;
   cursor: pointer;
 }
 
 .dark .ProseMirror a {
-  color: #60a5fa;
+  color: #a78bfa;
 }

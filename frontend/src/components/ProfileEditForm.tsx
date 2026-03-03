@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { userApi } from "../api/userApi";
+import { Button } from "./Button";
 
 interface ProfileEditFormProps {
   currentBio: string;
@@ -23,8 +24,8 @@ export default function ProfileEditForm({
   });
 
   return (
-    <div className="mt-6 p-4 border border-gray-200 dark:border-slate-700 rounded-lg">
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3">
+    <div className="mt-6 p-4 rounded-xl surface-card">
+      <h3 className="text-sm font-display font-semibold text-gray-700 dark:text-slate-300 mb-3">
         Modifier le profil
       </h3>
       <div>
@@ -36,24 +37,21 @@ export default function ProfileEditForm({
           onChange={(e) => setBio(e.target.value)}
           maxLength={500}
           rows={3}
-          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+          className="w-full px-3 py-2.5 text-sm rounded-lg surface-input focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
           placeholder="Parlez de vous..."
         />
       </div>
-      <div className="flex gap-2 mt-3">
-        <button
+      <div className="flex gap-3 mt-3">
+        <Button
+          variant="primary"
           onClick={() => mutation.mutate({ bio })}
           disabled={mutation.isPending}
-          className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
         >
           {mutation.isPending ? "Sauvegarde..." : "Sauvegarder"}
-        </button>
-        <button
-          onClick={onClose}
-          className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-        >
+        </Button>
+        <Button variant="secondary" onClick={onClose}>
           Annuler
-        </button>
+        </Button>
       </div>
       {mutation.isError && (
         <p className="mt-2 text-xs text-red-500">

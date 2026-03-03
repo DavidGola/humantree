@@ -12,6 +12,7 @@ class UserSchema(BaseModel):
     bio: str | None = None
     avatar_url: str | None = None
     created_at: datetime | None = None
+    skills_checked_count: int = 0
 
 
 class UserPublicSchema(BaseModel):
