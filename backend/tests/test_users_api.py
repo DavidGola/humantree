@@ -1,5 +1,5 @@
 import pytest
-from tests.conftest import register_user, login_user, auth_headers, create_skill_tree
+from tests.conftest import register_user, login_user, auth_cookies, create_skill_tree
 
 
 # ========== REGISTER ==========
@@ -94,10 +94,8 @@ async def test_login_success(client):
     )
     assert response.status_code == 200
     data = response.json()
-    assert "access_token" in data
-    assert data["token_type"] == "bearer"
     assert data["username"] == "testuser"
-    assert "expires_in" in data
+    assert "access_token" in response.cookies
 
 
 @pytest.mark.asyncio
@@ -108,7 +106,7 @@ async def test_login_with_email(client):
         data={"username": "test@example.com", "password": "password123"},
     )
     assert response.status_code == 200
-    assert "access_token" in response.json()
+    assert "access_token" in response.cookies
 
 
 @pytest.mark.asyncio
@@ -143,8 +141,7 @@ async def test_refresh_token_success(client):
     client.cookies.set("refresh_token", login_response.cookies["refresh_token"])
     response = await client.post("/api/v1/users/refresh")
     assert response.status_code == 200
-    data = response.json()
-    assert "access_token" in data
+    assert "access_token" in response.cookies
 
 
 @pytest.mark.asyncio
@@ -186,8 +183,8 @@ async def test_get_public_user_not_found(client):
 @pytest.mark.asyncio
 async def test_skills_checked_empty(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    response = await client.get("/api/v1/users/skills-checked", headers=headers)
+    cookies = await auth_cookies(client)
+    response = await client.get("/api/v1/users/skills-checked", cookies=cookies)
     assert response.status_code == 200
     data = response.json()
     assert data["skill_ids"] == []
@@ -202,9 +199,9 @@ async def test_skills_checked_unauthenticated(client):
 @pytest.mark.asyncio
 async def test_add_and_get_skill_checked(client):
     await register_user(client)
-    headers = await auth_headers(client)
+    cookies = await auth_cookies(client)
     # Créer un skill tree avec un skill pour avoir un skill_id valide
-    tree = await create_skill_tree(client, headers, name="Test Tree")
+    tree = await create_skill_tree(client, cookies, name="Test Tree")
     # Sauvegarder avec un skill
     await client.put(
         f"/api/v1/skill-trees/save/{tree['id']}",
@@ -216,7 +213,7 @@ async def test_add_and_get_skill_checked(client):
                 {"id": -1, "name": "Skill A", "is_root": True, "unlock_ids": []},
             ],
         },
-        headers=headers,
+        cookies=cookies,
     )
     # Récupérer le skill_id créé
     detail = await client.get(f"/api/v1/skill-trees/{tree['id']}")
@@ -226,12 +223,12 @@ async def test_add_and_get_skill_checked(client):
     response = await client.post(
         "/api/v1/users/skills-checked",
         json={"skill_id": skill_id},
-        headers=headers,
+        cookies=cookies,
     )
     assert response.status_code == 204
 
     # Vérifier qu'il est dans la liste
-    response = await client.get("/api/v1/users/skills-checked", headers=headers)
+    response = await client.get("/api/v1/users/skills-checked", cookies=cookies)
     assert response.status_code == 200
     assert skill_id in response.json()["skill_ids"]
 
@@ -239,8 +236,8 @@ async def test_add_and_get_skill_checked(client):
 @pytest.mark.asyncio
 async def test_remove_skill_checked(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    tree = await create_skill_tree(client, headers, name="Test Tree")
+    cookies = await auth_cookies(client)
+    tree = await create_skill_tree(client, cookies, name="Test Tree")
     await client.put(
         f"/api/v1/skill-trees/save/{tree['id']}",
         json={
@@ -251,7 +248,7 @@ async def test_remove_skill_checked(client):
                 {"id": -1, "name": "Skill A", "is_root": True, "unlock_ids": []},
             ],
         },
-        headers=headers,
+        cookies=cookies,
     )
     detail = await client.get(f"/api/v1/skill-trees/{tree['id']}")
     skill_id = detail.json()["skills"][0]["id"]
@@ -260,15 +257,15 @@ async def test_remove_skill_checked(client):
     await client.post(
         "/api/v1/users/skills-checked",
         json={"skill_id": skill_id},
-        headers=headers,
+        cookies=cookies,
     )
     response = await client.delete(
-        f"/api/v1/users/skills-checked/{skill_id}", headers=headers
+        f"/api/v1/users/skills-checked/{skill_id}", cookies=cookies
     )
     assert response.status_code == 204
 
     # Vérifier que la liste est vide
-    response = await client.get("/api/v1/users/skills-checked", headers=headers)
+    response = await client.get("/api/v1/users/skills-checked", cookies=cookies)
     assert response.status_code == 200
     assert skill_id not in response.json()["skill_ids"]
 
@@ -292,8 +289,8 @@ async def test_remove_skill_checked_unauthenticated(client):
 
 @pytest.mark.asyncio
 async def test_invalid_token(client):
-    headers = {"Authorization": "Bearer invalid.token.here"}
-    response = await client.get("/api/v1/users/skills-checked", headers=headers)
+    cookies = {"access_token": "invalid.token.here"}
+    response = await client.get("/api/v1/users/skills-checked", cookies=cookies)
     assert response.status_code == 401
 
 

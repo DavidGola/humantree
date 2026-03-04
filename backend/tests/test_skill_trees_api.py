@@ -1,5 +1,5 @@
 import pytest
-from tests.conftest import register_user, auth_headers, create_skill_tree
+from tests.conftest import register_user, auth_cookies, create_skill_tree
 
 
 # ========== GET ALL SKILL TREES ==========
@@ -15,9 +15,9 @@ async def test_get_skill_trees_empty(client):
 @pytest.mark.asyncio
 async def test_get_skill_trees_with_data(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    await create_skill_tree(client, headers, name="Tree 1")
-    await create_skill_tree(client, headers, name="Tree 2")
+    cookies = await auth_cookies(client)
+    await create_skill_tree(client, cookies, name="Tree 1")
+    await create_skill_tree(client, cookies, name="Tree 2")
 
     response = await client.get("/api/v1/skill-trees/")
     assert response.status_code == 200
@@ -34,11 +34,11 @@ async def test_get_skill_trees_with_data(client):
 @pytest.mark.asyncio
 async def test_create_skill_tree_success(client):
     await register_user(client)
-    headers = await auth_headers(client)
+    cookies = await auth_cookies(client)
     response = await client.post(
         "/api/v1/skill-trees/",
         json={"name": "My Tree", "description": "A great tree"},
-        headers=headers,
+        cookies=cookies,
     )
     assert response.status_code == 201
     data = response.json()
@@ -60,11 +60,11 @@ async def test_create_skill_tree_unauthenticated(client):
 @pytest.mark.asyncio
 async def test_create_skill_tree_no_description(client):
     await register_user(client)
-    headers = await auth_headers(client)
+    cookies = await auth_cookies(client)
     response = await client.post(
         "/api/v1/skill-trees/",
         json={"name": "Minimal Tree"},
-        headers=headers,
+        cookies=cookies,
     )
     assert response.status_code == 201
     data = response.json()
@@ -75,12 +75,12 @@ async def test_create_skill_tree_no_description(client):
 @pytest.mark.asyncio
 async def test_create_skill_tree_duplicate_name(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    await create_skill_tree(client, headers, name="Unique Tree")
+    cookies = await auth_cookies(client)
+    await create_skill_tree(client, cookies, name="Unique Tree")
     response = await client.post(
         "/api/v1/skill-trees/",
         json={"name": "Unique Tree"},
-        headers=headers,
+        cookies=cookies,
     )
     assert response.status_code in [409, 500]
 
@@ -88,8 +88,8 @@ async def test_create_skill_tree_duplicate_name(client):
 @pytest.mark.asyncio
 async def test_create_skill_tree_empty_body(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    response = await client.post("/api/v1/skill-trees/", json={}, headers=headers)
+    cookies = await auth_cookies(client)
+    response = await client.post("/api/v1/skill-trees/", json={}, cookies=cookies)
     assert response.status_code == 422
 
 
@@ -99,8 +99,8 @@ async def test_create_skill_tree_empty_body(client):
 @pytest.mark.asyncio
 async def test_get_skill_tree_by_id(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    tree = await create_skill_tree(client, headers)
+    cookies = await auth_cookies(client)
+    tree = await create_skill_tree(client, cookies)
 
     response = await client.get(f"/api/v1/skill-trees/{tree['id']}")
     assert response.status_code == 200
@@ -121,10 +121,10 @@ async def test_get_skill_tree_not_found(client):
 @pytest.mark.asyncio
 async def test_delete_skill_tree_success(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    tree = await create_skill_tree(client, headers)
+    cookies = await auth_cookies(client)
+    tree = await create_skill_tree(client, cookies)
 
-    response = await client.delete(f"/api/v1/skill-trees/{tree['id']}", headers=headers)
+    response = await client.delete(f"/api/v1/skill-trees/{tree['id']}", cookies=cookies)
     assert response.status_code == 204
 
     response = await client.get(f"/api/v1/skill-trees/{tree['id']}")
@@ -134,8 +134,8 @@ async def test_delete_skill_tree_success(client):
 @pytest.mark.asyncio
 async def test_delete_skill_tree_unauthenticated(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    tree = await create_skill_tree(client, headers)
+    cookies = await auth_cookies(client)
+    tree = await create_skill_tree(client, cookies)
 
     response = await client.delete(f"/api/v1/skill-trees/{tree['id']}")
     assert response.status_code == 401
@@ -144,21 +144,21 @@ async def test_delete_skill_tree_unauthenticated(client):
 @pytest.mark.asyncio
 async def test_delete_skill_tree_not_owner(client):
     await register_user(client, username="owner", email="owner@example.com")
-    headers_owner = await auth_headers(client, username="owner")
-    tree = await create_skill_tree(client, headers_owner)
+    cookies_owner = await auth_cookies(client, username="owner")
+    tree = await create_skill_tree(client, cookies_owner)
 
     await register_user(client, username="other", email="other@example.com")
-    headers_other = await auth_headers(client, username="other")
+    cookies_other = await auth_cookies(client, username="other")
 
-    response = await client.delete(f"/api/v1/skill-trees/{tree['id']}", headers=headers_other)
+    response = await client.delete(f"/api/v1/skill-trees/{tree['id']}", cookies=cookies_other)
     assert response.status_code == 403
 
 
 @pytest.mark.asyncio
 async def test_delete_skill_tree_not_found(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    response = await client.delete("/api/v1/skill-trees/99999", headers=headers)
+    cookies = await auth_cookies(client)
+    response = await client.delete("/api/v1/skill-trees/99999", cookies=cookies)
     assert response.status_code == 404
 
 
@@ -168,13 +168,13 @@ async def test_delete_skill_tree_not_found(client):
 @pytest.mark.asyncio
 async def test_update_skill_tree_success(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    tree = await create_skill_tree(client, headers)
+    cookies = await auth_cookies(client)
+    tree = await create_skill_tree(client, cookies)
 
     response = await client.patch(
         f"/api/v1/skill-trees/{tree['id']}",
         json={"name": "Updated Name", "description": "Updated desc"},
-        headers=headers,
+        cookies=cookies,
     )
     assert response.status_code == 200
     data = response.json()
@@ -185,14 +185,14 @@ async def test_update_skill_tree_success(client):
 @pytest.mark.asyncio
 async def test_update_skill_tree_partial(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    tree = await create_skill_tree(client, headers)
+    cookies = await auth_cookies(client)
+    tree = await create_skill_tree(client, cookies)
 
     # Mettre à jour seulement la description
     response = await client.patch(
         f"/api/v1/skill-trees/{tree['id']}",
         json={"description": "New desc only"},
-        headers=headers,
+        cookies=cookies,
     )
     assert response.status_code == 200
     data = response.json()
@@ -203,16 +203,16 @@ async def test_update_skill_tree_partial(client):
 @pytest.mark.asyncio
 async def test_update_skill_tree_not_owner(client):
     await register_user(client, username="owner", email="owner@example.com")
-    headers_owner = await auth_headers(client, username="owner")
-    tree = await create_skill_tree(client, headers_owner)
+    cookies_owner = await auth_cookies(client, username="owner")
+    tree = await create_skill_tree(client, cookies_owner)
 
     await register_user(client, username="other", email="other@example.com")
-    headers_other = await auth_headers(client, username="other")
+    cookies_other = await auth_cookies(client, username="other")
 
     response = await client.patch(
         f"/api/v1/skill-trees/{tree['id']}",
         json={"name": "Hacked"},
-        headers=headers_other,
+        cookies=cookies_other,
     )
     assert response.status_code == 403
 
@@ -220,8 +220,8 @@ async def test_update_skill_tree_not_owner(client):
 @pytest.mark.asyncio
 async def test_update_skill_tree_unauthenticated(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    tree = await create_skill_tree(client, headers)
+    cookies = await auth_cookies(client)
+    tree = await create_skill_tree(client, cookies)
 
     response = await client.patch(
         f"/api/v1/skill-trees/{tree['id']}",
@@ -233,11 +233,11 @@ async def test_update_skill_tree_unauthenticated(client):
 @pytest.mark.asyncio
 async def test_update_skill_tree_not_found(client):
     await register_user(client)
-    headers = await auth_headers(client)
+    cookies = await auth_cookies(client)
     response = await client.patch(
         "/api/v1/skill-trees/99999",
         json={"name": "Ghost"},
-        headers=headers,
+        cookies=cookies,
     )
     assert response.status_code == 404
 
@@ -248,8 +248,8 @@ async def test_update_skill_tree_not_found(client):
 @pytest.mark.asyncio
 async def test_save_skill_tree_with_skills(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    tree = await create_skill_tree(client, headers)
+    cookies = await auth_cookies(client)
+    tree = await create_skill_tree(client, cookies)
 
     response = await client.put(
         f"/api/v1/skill-trees/save/{tree['id']}",
@@ -262,7 +262,7 @@ async def test_save_skill_tree_with_skills(client):
                 {"id": -2, "name": "Child Skill", "is_root": False, "unlock_ids": []},
             ],
         },
-        headers=headers,
+        cookies=cookies,
     )
     assert response.status_code == 200
 
@@ -279,8 +279,8 @@ async def test_save_skill_tree_with_skills(client):
 @pytest.mark.asyncio
 async def test_save_skill_tree_id_mismatch(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    tree = await create_skill_tree(client, headers)
+    cookies = await auth_cookies(client)
+    tree = await create_skill_tree(client, cookies)
 
     response = await client.put(
         f"/api/v1/skill-trees/save/{tree['id']}",
@@ -290,7 +290,7 @@ async def test_save_skill_tree_id_mismatch(client):
             "creator_username": "testuser",
             "skills": [],
         },
-        headers=headers,
+        cookies=cookies,
     )
     assert response.status_code == 400
 
@@ -298,11 +298,11 @@ async def test_save_skill_tree_id_mismatch(client):
 @pytest.mark.asyncio
 async def test_save_skill_tree_not_owner(client):
     await register_user(client, username="owner", email="owner@example.com")
-    headers_owner = await auth_headers(client, username="owner")
-    tree = await create_skill_tree(client, headers_owner)
+    cookies_owner = await auth_cookies(client, username="owner")
+    tree = await create_skill_tree(client, cookies_owner)
 
     await register_user(client, username="other", email="other@example.com")
-    headers_other = await auth_headers(client, username="other")
+    cookies_other = await auth_cookies(client, username="other")
 
     response = await client.put(
         f"/api/v1/skill-trees/save/{tree['id']}",
@@ -312,7 +312,7 @@ async def test_save_skill_tree_not_owner(client):
             "creator_username": "owner",
             "skills": [],
         },
-        headers=headers_other,
+        cookies=cookies_other,
     )
     assert response.status_code == 403
 
@@ -333,9 +333,9 @@ async def test_save_skill_tree_unauthenticated(client):
 async def test_save_skill_tree_with_linked_tree(client):
     """Un skill peut pointer vers un autre arbre via linked_tree_id."""
     await register_user(client)
-    headers = await auth_headers(client)
-    parent = await create_skill_tree(client, headers, name="Parent")
-    child = await create_skill_tree(client, headers, name="Child")
+    cookies = await auth_cookies(client)
+    parent = await create_skill_tree(client, cookies, name="Parent")
+    child = await create_skill_tree(client, cookies, name="Child")
 
     response = await client.put(
         f"/api/v1/skill-trees/save/{parent['id']}",
@@ -359,7 +359,7 @@ async def test_save_skill_tree_with_linked_tree(client):
                 },
             ],
         },
-        headers=headers,
+        cookies=cookies,
     )
     assert response.status_code == 200
 
@@ -373,9 +373,9 @@ async def test_save_skill_tree_with_linked_tree(client):
 async def test_delete_linked_tree_nullifies_skill(client):
     """Supprimer un arbre lié met linked_tree_id à NULL (ondelete SET NULL)."""
     await register_user(client)
-    headers = await auth_headers(client)
-    parent = await create_skill_tree(client, headers, name="Parent")
-    child = await create_skill_tree(client, headers, name="Child")
+    cookies = await auth_cookies(client)
+    parent = await create_skill_tree(client, cookies, name="Parent")
+    child = await create_skill_tree(client, cookies, name="Child")
 
     # Sauvegarder parent avec un skill lié à child
     await client.put(
@@ -394,12 +394,12 @@ async def test_delete_linked_tree_nullifies_skill(client):
                 },
             ],
         },
-        headers=headers,
+        cookies=cookies,
     )
 
     # Supprimer l'arbre child
     response = await client.delete(
-        f"/api/v1/skill-trees/{child['id']}", headers=headers
+        f"/api/v1/skill-trees/{child['id']}", cookies=cookies
     )
     assert response.status_code == 204
 
@@ -414,9 +414,9 @@ async def test_delete_linked_tree_nullifies_skill(client):
 async def test_save_does_not_copy_linked_tree(client):
     """Le save ne crée plus de copie — linked_tree_id reste l'original."""
     await register_user(client)
-    headers = await auth_headers(client)
-    parent = await create_skill_tree(client, headers, name="Parent")
-    other = await create_skill_tree(client, headers, name="Other")
+    cookies = await auth_cookies(client)
+    parent = await create_skill_tree(client, cookies, name="Parent")
+    other = await create_skill_tree(client, cookies, name="Other")
 
     await client.put(
         f"/api/v1/skill-trees/save/{parent['id']}",
@@ -434,7 +434,7 @@ async def test_save_does_not_copy_linked_tree(client):
                 },
             ],
         },
-        headers=headers,
+        cookies=cookies,
     )
 
     detail = await client.get(f"/api/v1/skill-trees/{parent['id']}")
@@ -453,9 +453,9 @@ async def test_save_does_not_copy_linked_tree(client):
 @pytest.mark.asyncio
 async def test_get_skill_trees_by_username(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    await create_skill_tree(client, headers, name="Tree A")
-    await create_skill_tree(client, headers, name="Tree B")
+    cookies = await auth_cookies(client)
+    await create_skill_tree(client, cookies, name="Tree A")
+    await create_skill_tree(client, cookies, name="Tree B")
 
     response = await client.get("/api/v1/skill-trees/skill-trees-user?username=testuser")
     assert response.status_code == 200
@@ -474,12 +474,12 @@ async def test_get_skill_trees_by_username_empty(client):
 async def test_get_skill_trees_by_username_isolation(client):
     """Vérifie qu'un user ne voit que ses propres arbres."""
     await register_user(client, username="alice", email="alice@example.com")
-    headers_alice = await auth_headers(client, username="alice")
-    await create_skill_tree(client, headers_alice, name="Alice Tree")
+    cookies_alice = await auth_cookies(client, username="alice")
+    await create_skill_tree(client, cookies_alice, name="Alice Tree")
 
     await register_user(client, username="bob", email="bob@example.com")
-    headers_bob = await auth_headers(client, username="bob")
-    await create_skill_tree(client, headers_bob, name="Bob Tree")
+    cookies_bob = await auth_cookies(client, username="bob")
+    await create_skill_tree(client, cookies_bob, name="Bob Tree")
 
     response = await client.get("/api/v1/skill-trees/skill-trees-user?username=alice")
     data = response.json()
@@ -493,10 +493,10 @@ async def test_get_skill_trees_by_username_isolation(client):
 @pytest.mark.asyncio
 async def test_my_skill_trees(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    await create_skill_tree(client, headers, name="My Tree")
+    cookies = await auth_cookies(client)
+    await create_skill_tree(client, cookies, name="My Tree")
 
-    response = await client.get("/api/v1/skill-trees/my-skill-trees", headers=headers)
+    response = await client.get("/api/v1/skill-trees/my-skill-trees", cookies=cookies)
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -515,16 +515,16 @@ async def test_my_skill_trees_unauthenticated(client):
 @pytest.mark.asyncio
 async def test_add_and_get_favorite(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    tree = await create_skill_tree(client, headers)
+    cookies = await auth_cookies(client)
+    tree = await create_skill_tree(client, cookies)
 
     response = await client.post(
-        f"/api/v1/skill-trees/favorite/{tree['id']}", headers=headers
+        f"/api/v1/skill-trees/favorite/{tree['id']}", cookies=cookies
     )
     assert response.status_code == 200
 
     response = await client.get(
-        "/api/v1/skill-trees/my-favorite-skill-trees", headers=headers
+        "/api/v1/skill-trees/my-favorite-skill-trees", cookies=cookies
     )
     assert response.status_code == 200
     data = response.json()
@@ -535,18 +535,18 @@ async def test_add_and_get_favorite(client):
 @pytest.mark.asyncio
 async def test_remove_favorite(client):
     await register_user(client)
-    headers = await auth_headers(client)
-    tree = await create_skill_tree(client, headers)
+    cookies = await auth_cookies(client)
+    tree = await create_skill_tree(client, cookies)
 
-    await client.post(f"/api/v1/skill-trees/favorite/{tree['id']}", headers=headers)
+    await client.post(f"/api/v1/skill-trees/favorite/{tree['id']}", cookies=cookies)
 
     response = await client.delete(
-        f"/api/v1/skill-trees/favorite/{tree['id']}", headers=headers
+        f"/api/v1/skill-trees/favorite/{tree['id']}", cookies=cookies
     )
     assert response.status_code == 200
 
     response = await client.get(
-        "/api/v1/skill-trees/my-favorite-skill-trees", headers=headers
+        "/api/v1/skill-trees/my-favorite-skill-trees", cookies=cookies
     )
     assert response.status_code == 200
     assert response.json() == []

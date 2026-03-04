@@ -6,19 +6,6 @@ const axiosInst: AxiosInstance = axios.create({
   withCredentials: true,
 });
 
-axiosInst.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers["Authorization"] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  },
-);
-
 axiosInst.interceptors.response.use(
   (response) => {
     return response;
@@ -30,20 +17,14 @@ axiosInst.interceptors.response.use(
       url.includes("/users/login") ||
       url.includes("/users/register");
     if (error.response && error.response.status === 401 && !isAuthRoute) {
-      // Handle unauthorized error (e.g., redirect to login)
       return axiosInst
         .post("/users/refresh/")
-        .then((response) => {
-          const newToken = response.data.access_token;
-          localStorage.setItem("token", newToken);
-          // Retry the original request with the new token
-          const originalRequest = error.config;
-          originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
-          return axiosInst(originalRequest);
+        .then(() => {
+          // Cookie access_token is set automatically by the browser
+          // Retry the original request
+          return axiosInst(error.config);
         })
         .catch((refreshError) => {
-          localStorage.removeItem("token");
-          localStorage.removeItem("username");
           window.dispatchEvent(new CustomEvent("auth:logout"));
           return Promise.reject(refreshError);
         });

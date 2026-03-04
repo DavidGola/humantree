@@ -48,9 +48,9 @@ class UserCreateSchema(BaseModel):
 class UserUpdateSchema(BaseModel):
     """Schema for updating an existing user."""
 
-    username: str | None = None
-    email: str | None = None
-    password: str | None = None
+    username: str | None = Field(None, min_length=3, max_length=30, pattern=r"^[a-zA-Z0-9_-]+$")
+    email: str | None = Field(None, pattern=r"^[\w\.-]+@[\w\.-]+\.\w+$")
+    password: str | None = Field(None, min_length=8)
     bio: str | None = Field(None, max_length=500)
     avatar_url: str | None = Field(None, max_length=500)
 

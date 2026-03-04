@@ -16,8 +16,9 @@ from app.limiter import limiter
 
 # SQLAlchemy
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete as sa_delete
 from app.models.user_check_skill import UserCheckSkill
+from app.models.tokens import Token
 
 # Database
 from app.database import get_db
@@ -120,11 +121,16 @@ async def login(
     response = JSONResponse(
         content={
             "message": "Login successful",
-            "access_token": jwt_token.access_token,
-            "token_type": jwt_token.token_type,
-            "expires_in": jwt_token.expires_in,
             "username": jwt_token.username,
         }
+    )
+    response.set_cookie(
+        key="access_token",
+        value=jwt_token.access_token,
+        httponly=True,
+        secure=True,
+        samesite="Strict",
+        max_age=900,  # 15 minutes
     )
     response.set_cookie(
         key="refresh_token",
@@ -134,6 +140,25 @@ async def login(
         samesite="Strict",
         max_age=7 * 24 * 60 * 60,  # 7 jours
     )
+    return response
+
+
+@router.post(
+    "/logout",
+    summary="Logout user",
+    description="Clear authentication cookies",
+)
+async def logout(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    refresh_token = request.cookies.get("refresh_token")
+    if refresh_token:
+        await db.execute(sa_delete(Token).where(Token.token == refresh_token))
+        await db.commit()
+    response = JSONResponse(content={"message": "Logged out"})
+    response.delete_cookie("access_token", httponly=True, secure=True, samesite="strict")
+    response.delete_cookie("refresh_token", httponly=True, secure=True, samesite="strict")
     return response
 
 
@@ -159,11 +184,16 @@ async def refresh_token(
     response = JSONResponse(
         content={
             "message": "Token refreshed successfully",
-            "access_token": new_refresh_token.access_token,
-            "token_type": new_refresh_token.token_type,
-            "expires_in": new_refresh_token.expires_in,
             "username": new_refresh_token.username,
         }
+    )
+    response.set_cookie(
+        key="access_token",
+        value=new_refresh_token.access_token,
+        httponly=True,
+        secure=True,
+        samesite="Strict",
+        max_age=900,  # 15 minutes
     )
     response.set_cookie(
         key="refresh_token",

@@ -47,6 +47,11 @@ function RegisterPage() {
       });
       return;
     }
+    if (u.length < 3 || u.length > 30 || !/^[a-zA-Z0-9_-]+$/.test(u)) {
+      toast.error("Le nom d'utilisateur doit faire 3-30 caractères (lettres, chiffres, - et _).");
+      setErrors({ username: true });
+      return;
+    }
     if (!isValidEmail(em)) {
       toast.error("Veuillez entrer un email valide.");
       setErrors({ email: true });

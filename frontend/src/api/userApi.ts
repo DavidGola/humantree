@@ -27,6 +27,8 @@ export const userApi = {
 
   refresh: () => axiosInst.post("/users/refresh/"),
 
+  logout: () => axiosInst.post("/users/logout/"),
+
   register: (username: string, email: string, password: string) =>
     axiosInst.post("/users/register/", { username, email, password }),
 };

@@ -4,13 +4,13 @@ import os
 
 from cryptography.fernet import Fernet
 
-SECRET_KEY = os.getenv("SECRET_KEY", "")
-if not SECRET_KEY:
-    raise ValueError("SECRET_KEY is not set in the environment variables")
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")
+if not ENCRYPTION_KEY:
+    raise ValueError("ENCRYPTION_KEY is not set in the environment variables")
 
-# Derive a Fernet-compatible key from SECRET_KEY
+# Derive a Fernet-compatible key from ENCRYPTION_KEY
 _derived_key = base64.urlsafe_b64encode(
-    hashlib.sha256(SECRET_KEY.encode()).digest()
+    hashlib.sha256(ENCRYPTION_KEY.encode()).digest()
 )
 _fernet = Fernet(_derived_key)
 

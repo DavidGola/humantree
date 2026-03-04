@@ -33,14 +33,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     userApi
       .login(formData)
       .then((response) => {
+        setUsername(response.data.username);
+        setIsAuthenticated(true);
         try {
-          localStorage.setItem("token", response.data.access_token);
           localStorage.setItem("username", response.data.username);
         } catch {
           // localStorage indisponible
         }
-        setUsername(response.data.username);
-        setIsAuthenticated(true);
       })
       .catch((err) => {
         if (err.response?.status === 401) {
@@ -55,8 +54,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   function logout() {
+    userApi.logout().catch(() => {});
     try {
-      localStorage.removeItem("token");
       localStorage.removeItem("username");
     } catch {
       // localStorage indisponible
@@ -66,38 +65,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     toast.success("Déconnexion réussie.");
   }
 
+  // Au chargement, vérifier la session via /me/profile
   useEffect(() => {
-    let token: string | null = null;
     let storedUsername: string | null = null;
     try {
-      token = localStorage.getItem("token");
       storedUsername = localStorage.getItem("username");
     } catch {
       return;
     }
-    if (token && storedUsername && !isJWTExpired(token)) {
-      setUsername(storedUsername);
-      setIsAuthenticated(true);
-    } else if (token && isJWTExpired(token)) {
+    if (storedUsername) {
       userApi
-        .refresh()
-        .then((response) => {
-          try {
-            localStorage.setItem("token", response.data.access_token);
-            localStorage.setItem("username", response.data.username);
-          } catch {
-            // localStorage indisponible
-          }
-          setUsername(response.data.username);
+        .getProfile()
+        .then((user) => {
+          setUsername(user.username);
           setIsAuthenticated(true);
+          try {
+            localStorage.setItem("username", user.username);
+          } catch {}
         })
         .catch(() => {
           try {
-            localStorage.removeItem("token");
             localStorage.removeItem("username");
-          } catch {
-            // localStorage indisponible
-          }
+          } catch {}
         });
     }
   }, []);
@@ -105,6 +94,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Logout automatique quand le refresh token échoue (intercepteur Axios)
   useEffect(() => {
     const handleForceLogout = () => {
+      try {
+        localStorage.removeItem("username");
+      } catch {}
       setUsername("");
       setIsAuthenticated(false);
       toast.error("Session expirée. Veuillez vous reconnecter.");
@@ -112,19 +104,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     window.addEventListener("auth:logout", handleForceLogout);
     return () => window.removeEventListener("auth:logout", handleForceLogout);
   }, []);
-
-  function isJWTExpired(token: string): boolean {
-    try {
-      const parts = token.split(".");
-      if (parts.length !== 3) return true;
-      const payload = JSON.parse(atob(parts[1]));
-      const exp = payload.exp;
-      const currentTime = Math.floor(Date.now() / 1000);
-      return exp < currentTime;
-    } catch {
-      return true; // Considérer le token comme expiré en cas d'erreur
-    }
-  }
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, isLoggingIn, username, login, logout }}>

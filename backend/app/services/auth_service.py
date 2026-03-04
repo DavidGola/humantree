@@ -2,13 +2,13 @@
 
 import os
 from app.schemas.auth import JWTTokenSchema
-from jose import jwt, JWTError
+import jwt
+from jwt.exceptions import PyJWTError
 from datetime import datetime, timedelta, timezone
-from fastapi.security import OAuth2PasswordBearer
-from fastapi import Depends, HTTPException
+from fastapi import HTTPException, Request
 from secrets import token_urlsafe
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, delete
 from app.models.tokens import Token
 from app.services.user_service import get_user_username
 
@@ -25,8 +25,14 @@ async def create_jwt_token(
     db: AsyncSession, user_id: int, username: str
 ) -> JWTTokenSchema:
     """Génère un token JWT pour l'utilisateur authentifié."""
-    refresh_token = token_urlsafe(32)  # Génère un token de rafraîchissement sécurisé
-    # Ici, vous pouvez stocker le refresh_token dans la base de données associé à l'utilisateur pour une gestion future (ex: invalidation, rotation, etc.)
+    refresh_token = token_urlsafe(32)
+    # Nettoyer les tokens expirés de cet utilisateur
+    await db.execute(
+        delete(Token).where(
+            Token.user_id == user_id,
+            Token.expires_at < datetime.now(timezone.utc),
+        )
+    )
     stmt = insert(Token).values(
         user_id=user_id,
         token=refresh_token,
@@ -49,20 +55,18 @@ async def create_jwt_token(
     )
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")
-
-
-async def get_current_user(token: str = Depends(oauth2_scheme)):
-    """Récupère l'utilisateur actuel à partir du token JWT."""
+async def get_current_user(request: Request):
+    """Récupère l'utilisateur actuel à partir du cookie access_token."""
+    token = request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         user_id = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token")
-    except JWTError:
+    except PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
-
-    # Retourner le user_id (ou aller chercher le user en base)
     return int(user_id)
 
 

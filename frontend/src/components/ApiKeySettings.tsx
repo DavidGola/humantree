@@ -4,7 +4,7 @@ import { apiKeyApi, type ApiKeyInfo } from "../api/apiKeyApi";
 import { Button } from "./Button";
 
 const PROVIDERS = [
-  { id: "google", label: "Google (Gemini)", sub: "gratuit", icon: "G" },
+  { id: "google", label: "Google (Gemini)", sub: null, icon: "G" },
   { id: "anthropic", label: "Anthropic (Claude)", sub: null, icon: "A" },
   { id: "openai", label: "OpenAI (GPT)", sub: null, icon: "O" },
 ] as const;

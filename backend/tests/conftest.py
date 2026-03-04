@@ -75,19 +75,23 @@ async def login_user(
     return response.json()
 
 
-async def auth_headers(
+async def auth_cookies(
     client: AsyncClient,
     username: str = "testuser",
     password: str = "password123",
 ) -> dict:
-    """Helper : retourne les headers Authorization pour un utilisateur loggé."""
-    login_data = await login_user(client, username, password)
-    return {"Authorization": f"Bearer {login_data['access_token']}"}
+    """Helper : login et retourne les cookies d'authentification."""
+    response = await client.post(
+        "/api/v1/users/login",
+        data={"username": username, "password": password},
+    )
+    assert response.status_code == 200
+    return dict(response.cookies)
 
 
 async def create_skill_tree(
     client: AsyncClient,
-    headers: dict,
+    cookies: dict,
     name: str = "Test Tree",
     description: str | None = "A test skill tree",
 ) -> dict:
@@ -95,7 +99,7 @@ async def create_skill_tree(
     response = await client.post(
         "/api/v1/skill-trees/",
         json={"name": name, "description": description},
-        headers=headers,
+        cookies=cookies,
     )
     assert response.status_code == 201
     return response.json()
