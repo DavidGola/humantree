@@ -52,6 +52,7 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/provisioning/dashboards/humantree.json:/var/lib/grafana/dashboards/humantree.json:ro
     depends_on:
       - prometheus
     environment:
