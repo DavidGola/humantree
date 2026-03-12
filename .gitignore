@@ -13,6 +13,7 @@ CLAUDE_INSTRUCTIONS.md
 CMD.md
 CLAUDE.md
 bonne_pratique*.md
+tasks/
 
 # Docs personal notes
 cmd_doc
@@ -21,6 +22,7 @@ TODO.md
 
 # Environment variables
 .env
+.secrets
 
 # SQL files
 *.sql
@@ -34,3 +36,6 @@ k8s/
 # BMAD
 _bmad/
 brainstorming*
+
+# Scripts
+scripts/

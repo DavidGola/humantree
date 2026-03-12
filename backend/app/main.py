@@ -1,6 +1,7 @@
 import logging
 
 import time
+import asyncio
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +10,8 @@ from sqlalchemy.exc import IntegrityError
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
+from app.database import engine
+from contextlib import asynccontextmanager
 
 from app.limiter import limiter
 from app.routers.skill_trees import router as skill_trees_router
@@ -17,6 +20,7 @@ from app.routers.user import router as user_router
 from app.routers.api_keys import router as api_keys_router
 from app.routers.ai import router as ai_router
 from dotenv import load_dotenv
+from app.metrics import instrumentator, counter_rate_limit_exceeded, db_pool_checked_out
 import os
 
 logging.basicConfig(
@@ -25,7 +29,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Démarrage de l'application
+    logger.info("Démarrage de l'application...")
+
+    async def monitor_db_pool():
+        while True:
+            try:
+                db_pool_checked_out.set(engine.pool.checkedout())
+            except Exception:
+                pass
+            await asyncio.sleep(15)
+
+    task = asyncio.create_task(monitor_db_pool())
+    yield
+    # Arrêt de l'application
+    logger.info("Arrêt de l'application...")
+    task.cancel()
+
+
+app = FastAPI(lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -47,7 +72,9 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         if content_length and int(content_length) > MAX_CONTENT_LENGTH:
             return JSONResponse(
                 status_code=413,
-                content={"detail": "Le contenu dépasse la taille maximale autorisée (1 Mo)."},
+                content={
+                    "detail": "Le contenu dépasse la taille maximale autorisée (1 Mo)."
+                },
             )
 
         start = time.perf_counter()
@@ -61,6 +88,10 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             logger.error(log_msg)
         elif status >= 400:
             logger.warning(log_msg)
+            if status == 429:
+                counter_rate_limit_exceeded.labels(
+                    method=request.method, path=request.url.path
+                ).inc()
         else:
             logger.info(log_msg)
 
@@ -68,9 +99,15 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
-        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://humantree.vps.webdock.cloud"
+        response.headers["Permissions-Policy"] = (
+            "camera=(), microphone=(), geolocation=()"
+        )
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=63072000; includeSubDomains"
+        )
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://humantree.vps.webdock.cloud"
+        )
 
         return response
 
@@ -97,7 +134,11 @@ async def integrity_error_handler(request: Request, exc: IntegrityError):
             status_code=409,
             content={"detail": "Conflit : une ressource avec ces données existe déjà"},
         )
-    if "foreign key" in error_msg or "fk_" in error_msg or "is not present in table" in error_msg:
+    if (
+        "foreign key" in error_msg
+        or "fk_" in error_msg
+        or "is not present in table" in error_msg
+    ):
         return JSONResponse(
             status_code=400,
             content={"detail": "Référence invalide : la ressource liée n'existe pas"},
@@ -119,6 +160,8 @@ app.include_router(skill_trees_router)
 app.include_router(api_keys_router)
 app.include_router(user_router)
 app.include_router(ai_router)
+
+instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 
 
 @app.get("/health", tags=["Health Check"])
