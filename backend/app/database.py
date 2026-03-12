@@ -13,12 +13,11 @@ elif ENVIRONMENT == "test":
 else:
     POSTGRES_DATABASE_URL = os.getenv("POSTGRES_DATABASE_URL")
 
-if ENVIRONMENT != "test":
-    if not POSTGRES_DATABASE_URL:
-        raise ValueError("POSTGRES_DATABASE_URL is not set in the environment variables")
+if not POSTGRES_DATABASE_URL:
+    raise ValueError("POSTGRES_DATABASE_URL is not set in the environment variables")
 
-    engine = create_async_engine(POSTGRES_DATABASE_URL, echo=(ENVIRONMENT == "development"))
-    async_session = async_sessionmaker(engine, expire_on_commit=False)
+engine = create_async_engine(POSTGRES_DATABASE_URL, echo=(ENVIRONMENT == "development"))
+async_session = async_sessionmaker(engine, expire_on_commit=False)
 
 
 async def get_db() -> AsyncSession:
