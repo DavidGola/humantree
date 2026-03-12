@@ -1,4 +1,5 @@
 import os
+from collections.abc import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from dotenv import load_dotenv
 
@@ -20,6 +21,6 @@ engine = create_async_engine(POSTGRES_DATABASE_URL, echo=(ENVIRONMENT == "develo
 async_session = async_sessionmaker(engine, expire_on_commit=False)
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession]:
     async with async_session() as session:
         yield session

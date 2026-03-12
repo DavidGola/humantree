@@ -67,9 +67,41 @@ jobs:
           cd frontend
           npx vitest run
 
-  deploy:
+  build-push:
     runs-on: ubuntu-latest
     needs: test
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: ghcr.io/davidgola/humantree-backend:latest
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          build-args: VITE_API_URL=${{ secrets.VITE_API_URL }}
+          tags: ghcr.io/davidgola/humantree-frontend:latest
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-push
     steps:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.2.5
@@ -83,9 +115,10 @@ jobs:
             git pull origin main
             sudo cp nginx/humantree.conf /etc/nginx/sites-available/humantree
             sudo nginx -t && sudo systemctl reload nginx
-            docker builder prune -f
-            docker compose up -d --build
-            docker compose exec -T backend alembic upgrade head
+            echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ secrets.SSH_USER }} --password-stdin
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
+            docker compose -f docker-compose.prod.yml exec -T backend alembic upgrade head
             docker image prune -f
             for i in {1..10}; do
               echo "Checking if the application is up... (attempt $i)"
@@ -103,14 +136,12 @@ jobs:
             done
 
             echo "=== Smoke tests HTTPS ==="
-            # HTTPS doit répondre 200
             curl -sf https://humantree.vps.webdock.cloud/ > /dev/null || { echo "FAIL: frontend HTTPS"; exit 1; }
             echo "OK: frontend HTTPS"
 
             curl -sf https://humantree.vps.webdock.cloud/api/v1/skill-trees/ > /dev/null || { echo "FAIL: backend HTTPS"; exit 1; }
             echo "OK: backend API HTTPS"
 
-            # HTTP doit rediriger vers HTTPS (301)
             HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' http://humantree.vps.webdock.cloud/)
             if [ "$HTTP_CODE" != "301" ]; then
               echo "FAIL: HTTP redirect expected 301, got $HTTP_CODE"
