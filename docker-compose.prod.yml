@@ -8,9 +8,14 @@ services:
       - .env
     environment:
       - ENVIRONMENT=production
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_ROLE_ID=${VAULT_ROLE_ID:-}
+      - VAULT_SECRET_ID=${VAULT_SECRET_ID:-}
     depends_on:
       db:
         condition: service_healthy
+      vault-unseal:
+        condition: service_completed_successfully
   frontend:
     image: ghcr.io/davidgola/humantree-frontend:latest
     restart: unless-stopped
@@ -34,6 +39,60 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  loki:
+    image: grafana/loki:3.4.2
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:3.4.2
+    restart: unless-stopped
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./monitoring/promtail.yml:/etc/promtail/config.yml:ro
+    depends_on:
+      - loki
+
+  tempo:
+    image: grafana/tempo:2.7.2
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4318:4318"
+    volumes:
+      - ./monitoring/tempo.yml:/etc/tempo/config.yaml:ro
+      - tempo_data:/var/tempo
+    command: ["-config.file=/etc/tempo/config.yaml"]
+
+  vault:
+    image: hashicorp/vault:1.17
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8200:8200"
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - vault_data:/vault/file
+      - ./vault/config.hcl:/vault/config/config.hcl:ro
+      - ./vault/policy-backend.hcl:/vault/policy-backend.hcl:ro
+    command: vault server -config=/vault/config/config.hcl
+
+  vault-unseal:
+    image: busybox:1.37
+    depends_on:
+      - vault
+    volumes:
+      - ./vault/auto-unseal.sh:/unseal.sh:ro
+      - ./vault/.vault-keys.json:/vault/keys/vault-keys.json:ro
+    environment:
+      VAULT_ADDR: http://vault:8200
+    command: sh /unseal.sh
+    restart: "no"
+
   prometheus:
     image: prom/prometheus:latest
     restart: unless-stopped
@@ -55,6 +114,8 @@ services:
       - ./monitoring/grafana/provisioning/dashboards/humantree.json:/var/lib/grafana/dashboards/humantree.json:ro
     depends_on:
       - prometheus
+      - loki
+      - tempo
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-humantree}
@@ -63,3 +124,6 @@ volumes:
   db_data:
   prometheus_data:
   grafana_data:
+  vault_data:
+  loki_data:
+  tempo_data:

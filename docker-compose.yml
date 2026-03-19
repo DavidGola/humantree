@@ -14,8 +14,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      vault:
-        condition: service_started
+      vault-unseal:
+        condition: service_completed_successfully
   frontend:
     build:
       context: ./frontend
@@ -83,6 +83,18 @@ services:
       - ./vault/config.hcl:/vault/config/config.hcl:ro
       - ./vault/policy-backend.hcl:/vault/policy-backend.hcl:ro
     command: vault server -config=/vault/config/config.hcl
+
+  vault-unseal:
+    image: busybox:1.37
+    depends_on:
+      - vault
+    volumes:
+      - ./vault/auto-unseal.sh:/unseal.sh:ro
+      - ./vault/.vault-keys.json:/vault/keys/vault-keys.json:ro
+    environment:
+      VAULT_ADDR: http://vault:8200
+    command: sh /unseal.sh
+    restart: "no"
 
   prometheus:
     image: prom/prometheus:latest

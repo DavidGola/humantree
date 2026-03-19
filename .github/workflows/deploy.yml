@@ -118,7 +118,6 @@ jobs:
             echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ secrets.SSH_USER }} --password-stdin
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
-            docker compose -f docker-compose.prod.yml exec -T backend alembic upgrade head
             docker image prune -f
             for i in {1..10}; do
               echo "Checking if the application is up... (attempt $i)"
