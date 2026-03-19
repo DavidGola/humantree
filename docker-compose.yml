@@ -8,9 +8,14 @@ services:
       - .env
     environment:
       - ENVIRONMENT=production
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_ROLE_ID=${VAULT_ROLE_ID:-}
+      - VAULT_SECRET_ID=${VAULT_SECRET_ID:-}
     depends_on:
       db:
         condition: service_healthy
+      vault:
+        condition: service_started
   frontend:
     build:
       context: ./frontend
@@ -66,6 +71,19 @@ services:
       - tempo_data:/var/tempo
     command: ["-config.file=/etc/tempo/config.yaml"]
 
+  vault:
+    image: hashicorp/vault:1.17
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8200:8200"
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - vault_data:/vault/file
+      - ./vault/config.hcl:/vault/config/config.hcl:ro
+      - ./vault/policy-backend.hcl:/vault/policy-backend.hcl:ro
+    command: vault server -config=/vault/config/config.hcl
+
   prometheus:
     image: prom/prometheus:latest
     restart: unless-stopped
@@ -97,5 +115,6 @@ volumes:
   db_data:
   prometheus_data:
   grafana_data:
+  vault_data:
   loki_data:
   tempo_data:

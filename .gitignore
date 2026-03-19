@@ -24,6 +24,9 @@ TODO.md
 .env
 .secrets
 
+# Vault keys (NEVER commit)
+vault/.vault-keys.json
+
 # SQL files
 *.sql
 
@@ -46,3 +49,6 @@ bandit*
 
 # Courses
 docs/courses/
+
+# Vault
+vault/init.sh

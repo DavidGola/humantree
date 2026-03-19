@@ -11,12 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import insert, select, delete
 from app.models.tokens import Token
 from app.services.user_service import get_user_username
+from app.vault import get_secret
 
 from dotenv import load_dotenv
 
 
 load_dotenv()
-SECRET_KEY = os.getenv("SECRET_KEY", "")
+SECRET_KEY = get_secret("humantree/jwt", "SECRET_KEY")
 if not SECRET_KEY or SECRET_KEY == "":
     raise ValueError("SECRET_KEY is not set in the environment variables")
 

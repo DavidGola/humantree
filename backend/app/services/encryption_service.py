@@ -1,10 +1,10 @@
 import base64
 import hashlib
-import os
 
 from cryptography.fernet import Fernet
+from app.vault import get_secret
 
-ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")
+ENCRYPTION_KEY = get_secret("humantree/encryption", "ENCRYPTION_KEY")
 if not ENCRYPTION_KEY:
     raise ValueError("ENCRYPTION_KEY is not set in the environment variables")
 
