@@ -1,4 +1,5 @@
 import logging
+from pythonjsonlogger import json as jsonlogger
 
 import time
 import asyncio
@@ -21,12 +22,17 @@ from app.routers.api_keys import router as api_keys_router
 from app.routers.ai import router as ai_router
 from dotenv import load_dotenv
 from app.metrics import instrumentator, counter_rate_limit_exceeded, db_pool_checked_out
+from app.tracing import setup_tracing
 import os
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+json_handler = logging.StreamHandler()
+json_handler.setFormatter(
+    jsonlogger.JsonFormatter(
+        fmt="%(asctime)s %(name)s %(levelname)s %(message)s",
+        rename_fields={"asctime": "timestamp", "levelname": "level"},
+    )
 )
+logging.basicConfig(level=logging.INFO, handlers=[json_handler])
 logger = logging.getLogger(__name__)
 
 
@@ -53,6 +59,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# OpenTelemetry tracing
+setup_tracing(app, engine)
 
 load_dotenv()
 if os.getenv("ORIGINS"):
@@ -81,19 +90,25 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         duration_ms = round((time.perf_counter() - start) * 1000)
 
-        # Logging requête
+        # Logging requête (structuré)
         status = response.status_code
-        log_msg = f"{request.method} {request.url.path} {status} {duration_ms}ms"
+        log_data = {
+            "method": request.method,
+            "path": request.url.path,
+            "status": status,
+            "duration_ms": duration_ms,
+            "ip": request.client.host if request.client else None,
+        }
         if status >= 500:
-            logger.error(log_msg)
+            logger.error("request", extra=log_data)
         elif status >= 400:
-            logger.warning(log_msg)
+            logger.warning("request", extra=log_data)
             if status == 429:
                 counter_rate_limit_exceeded.labels(
                     method=request.method, path=request.url.path
                 ).inc()
         else:
-            logger.info(log_msg)
+            logger.info("request", extra=log_data)
 
         # Headers de sécurité
         response.headers["X-Content-Type-Options"] = "nosniff"
