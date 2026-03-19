@@ -1,0 +1,3 @@
+# Grafana dashboard panel IDs (not real secrets)
+3111736089f6cc77bf2b2202adb47e753495acc4:monitoring/grafana/provisioning/dashboards/humantree.json:generic-api-key:379
+1e3285a00f7bfabb72db11919bd91b12e703978d:monitoring/grafana/provisioning/dashboards/humantree.json:generic-api-key:571
