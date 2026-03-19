@@ -34,8 +34,15 @@ k8s/*-secret.yaml
 k8s/
 
 # BMAD
-_bmad/
+_bmad*/
 brainstorming*
 
 # Scripts
 scripts/generate_traffic.sh
+
+# Logs
+logs/
+bandit*
+
+# Courses
+docs/courses/
