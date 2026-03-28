@@ -1,8 +1,8 @@
 """Tests pour la gestion d'erreurs backend : handler global, favoris, validation Pydantic."""
 
 import pytest
-from tests.conftest import register_user, auth_cookies, create_skill_tree
 
+from tests.conftest import auth_cookies, create_skill_tree, register_user
 
 # ========== HANDLER GLOBAL IntegrityError ==========
 

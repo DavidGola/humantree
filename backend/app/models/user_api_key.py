@@ -1,6 +1,8 @@
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, Text, ForeignKey, UniqueConstraint, func
 from datetime import datetime
+
+from sqlalchemy import ForeignKey, String, Text, UniqueConstraint, func
+from sqlalchemy.orm import Mapped, mapped_column
+
 from app.models.base_model import BaseModel
 
 
@@ -8,9 +10,7 @@ class UserApiKey(BaseModel):
     """Model representing a user's API key for an AI provider."""
 
     __tablename__ = "user_api_keys"
-    __table_args__ = (
-        UniqueConstraint("user_id", "provider", name="uq_user_api_key_user_provider"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "provider", name="uq_user_api_key_user_provider"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))

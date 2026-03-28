@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.schemas.ai import AIEnrichSkillSchema, AIGenerateTreeSchema
+from app.services.ai_service import enrich_skill, generate_skill_tree
 from app.services.auth_service import get_current_user
-from app.services.ai_service import generate_skill_tree, enrich_skill
-from app.schemas.ai import AIGenerateTreeSchema, AIEnrichSkillSchema
 
 router = APIRouter(
     prefix="/api/v1/ai",
@@ -35,7 +35,9 @@ async def enrich_skill_route(
     db: AsyncSession = Depends(get_db),
 ):
     description = await enrich_skill(
-        db, user_id, data.skill_name,
+        db,
+        user_id,
+        data.skill_name,
         tree_name=data.tree_name,
         tree_description=data.tree_description,
         current_description=data.current_description,

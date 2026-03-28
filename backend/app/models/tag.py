@@ -1,5 +1,6 @@
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, ForeignKey
+
 from app.models.base_model import BaseModel
 
 
@@ -15,9 +16,5 @@ class SkillTreeTag(BaseModel):
     """Association table between skill_trees and tags."""
 
     __tablename__ = "skill_tree_tags"
-    skill_tree_id: Mapped[int] = mapped_column(
-        ForeignKey("skill_trees.id", ondelete="CASCADE"), primary_key=True
-    )
-    tag_id: Mapped[int] = mapped_column(
-        ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True
-    )
+    skill_tree_id: Mapped[int] = mapped_column(ForeignKey("skill_trees.id", ondelete="CASCADE"), primary_key=True)
+    tag_id: Mapped[int] = mapped_column(ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)

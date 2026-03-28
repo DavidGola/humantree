@@ -1,9 +1,10 @@
 import os
 from collections.abc import AsyncGenerator
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from dotenv import load_dotenv
-from app.vault import get_secret
 
+from dotenv import load_dotenv
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from app.vault import get_secret
 
 load_dotenv()
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")

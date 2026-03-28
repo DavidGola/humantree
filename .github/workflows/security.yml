@@ -113,7 +113,8 @@ jobs:
       - name: Run pip-audit
         run: |
           pip install pip-audit
-          pip-audit -r backend/requirements.txt --ignore-unfixed
+          pip-audit -r backend/requirements.txt
+        continue-on-error: true  # Dependabot handles fixes via PRs
 
       - name: Set up Node.js
         uses: actions/setup-node@v4

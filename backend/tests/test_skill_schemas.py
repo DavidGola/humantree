@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
-from app.schemas.skill import SkillSchema, SkillCreateSchema, SkillSaveSchema
 
+from app.schemas.skill import SkillCreateSchema, SkillSaveSchema, SkillSchema
 
 # --- SkillSchema.extract_unlock_ids validator ---
 

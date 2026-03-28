@@ -1,10 +1,11 @@
 import logging
 
-from sqlalchemy import insert, delete
-from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
-from app.models.user_favorite_trees import UserFavoriteTrees
+from sqlalchemy import delete, insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.user_favorite_trees import UserFavoriteTrees
 
 logger = logging.getLogger(__name__)
 
@@ -27,15 +28,11 @@ async def add_user_favorite_tree(db: AsyncSession, user_id: int, tree_id: int) -
     return True
 
 
-async def delete_user_favorite_tree(
-    db: AsyncSession, user_id: int, tree_id: int
-) -> bool:
+async def delete_user_favorite_tree(db: AsyncSession, user_id: int, tree_id: int) -> bool:
     """Supprime un skill tree des favoris d'un utilisateur."""
     stmt = delete(UserFavoriteTrees).where(
         UserFavoriteTrees.user_id == user_id, UserFavoriteTrees.skill_tree_id == tree_id
     )
     result = await db.execute(stmt)
     await db.commit()
-    if result.rowcount == 0:
-        return False
-    return True
+    return result.rowcount != 0

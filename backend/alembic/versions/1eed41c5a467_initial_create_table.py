@@ -6,17 +6,17 @@ Create Date: 2026-02-17 05:13:31.539866
 
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "1eed41c5a467"
-down_revision: Union[str, Sequence[str], None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -45,9 +45,7 @@ def upgrade() -> None:
             server_default=sa.text("CURRENT_TIMESTAMP"),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["creator_username"], ["users.username"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["creator_username"], ["users.username"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name"),
     )
@@ -64,17 +62,11 @@ def upgrade() -> None:
             server_default=sa.text("CURRENT_TIMESTAMP"),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["skill_tree_id"], ["skill_trees.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["skill_tree_id"], ["skill_trees.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "name", "skill_tree_id", name="skills_name_skill_tree_id_key"
-        ),
+        sa.UniqueConstraint("name", "skill_tree_id", name="skills_name_skill_tree_id_key"),
     )
-    op.create_index(
-        "idx_skills_skill_tree_id", "skills", ["skill_tree_id"], unique=False
-    )
+    op.create_index("idx_skills_skill_tree_id", "skills", ["skill_tree_id"], unique=False)
     op.create_index(
         "unique_tree_skill_id_root",
         "skills",
@@ -100,9 +92,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["skill_id"], ["skills.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "user_id", "skill_id", name="user_check_skill_user_id_skill_id_key"
-        ),
+        sa.UniqueConstraint("user_id", "skill_id", name="user_check_skill_user_id_skill_id_key"),
     )
     # ### end Alembic commands ###
 

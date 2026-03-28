@@ -1,5 +1,6 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, field_validator, Field
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class UserSchema(BaseModel):
@@ -37,12 +38,8 @@ class UserCreateSchema(BaseModel):
     """Schema for creating a new user."""
 
     username: str = Field(..., min_length=3, max_length=30, pattern=r"^[a-zA-Z0-9_-]+$")
-    email: str = Field(
-        ..., pattern=r"^[\w\.-]+@[\w\.-]+\.\w+$"
-    )  # Validation de l'email
-    password: str = Field(
-        ..., min_length=8
-    )  # Validation du mot de passe (au moins 8 caractères)
+    email: str = Field(..., pattern=r"^[\w\.-]+@[\w\.-]+\.\w+$")  # Validation de l'email
+    password: str = Field(..., min_length=8)  # Validation du mot de passe (au moins 8 caractères)
 
 
 class UserUpdateSchema(BaseModel):

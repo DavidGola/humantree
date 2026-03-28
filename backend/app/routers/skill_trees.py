@@ -5,8 +5,7 @@
 # ========== IMPORTS ==========
 
 # FastAPI core
-from fastapi import APIRouter, Depends
-from fastapi import HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 # SQLAlchemy
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,39 +13,35 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # Database
 from app.database import get_db
 
-# Services
-from app.services.skill_tree_service import (
-    get_all,
-    get_by_id,
-    create_skill_tree,
-    delete_skill_tree,
-    update_skill_tree,
-    save_skill_tree,
-    get_list_of_skill_trees_by_username,
-    is_user_authorized_for_editing,
-    get_trendings,
-    get_user_favorite_trees,
+# Schemas
+from app.schemas.skill_tree import (
+    SkillTreeCreateSchema,
+    SkillTreeCreateWithoutUsernameSchema,
+    SkillTreeDetailSchema,
+    SkillTreeSaveSchema,
+    SkillTreeSimpleSchema,
+    SkillTreeUpdateSchema,
 )
-
+from app.services.auth_service import get_current_user
 from app.services.favorite_service import (
     add_user_favorite_tree,
     delete_user_favorite_tree,
 )
 
-from app.services.auth_service import get_current_user
-
-from app.services.user_service import get_user_username
-
-# Schemas
-from app.schemas.skill_tree import (
-    SkillTreeSimpleSchema,
-    SkillTreeDetailSchema,
-    SkillTreeCreateSchema,
-    SkillTreeUpdateSchema,
-    SkillTreeSaveSchema,
-    SkillTreeCreateWithoutUsernameSchema,
+# Services
+from app.services.skill_tree_service import (
+    create_skill_tree,
+    delete_skill_tree,
+    get_all,
+    get_by_id,
+    get_list_of_skill_trees_by_username,
+    get_trendings,
+    get_user_favorite_trees,
+    is_user_authorized_for_editing,
+    save_skill_tree,
+    update_skill_tree,
 )
-
+from app.services.user_service import get_user_username
 
 # ========== CRÉATION DU ROUTER ==========
 
@@ -240,9 +235,7 @@ async def delete_skill_tree_endpoint(
 ):
     """Endpoint pour supprimer un skill tree spécifique."""
     if not await is_user_authorized_for_editing_by_id(db, id, user_id):
-        raise HTTPException(
-            status_code=403, detail="Not authorized to delete this skill tree"
-        )
+        raise HTTPException(status_code=403, detail="Not authorized to delete this skill tree")
     is_delete = await delete_skill_tree(db, id)
     if not is_delete:
         raise HTTPException(status_code=404, detail="Skill tree not found")
@@ -262,9 +255,7 @@ async def update_skill_tree_endpoint(
 ):
     """Endpoint pour mettre à jour un skill tree spécifique."""
     if not await is_user_authorized_for_editing_by_id(db, id, user_id):
-        raise HTTPException(
-            status_code=403, detail="Not authorized to update this skill tree"
-        )
+        raise HTTPException(status_code=403, detail="Not authorized to update this skill tree")
     result = await update_skill_tree(db, id, data)
     if result is None:
         raise HTTPException(status_code=404, detail="Skill tree not found")
@@ -285,13 +276,9 @@ async def save_skill_tree_endpoint(
 ):
     """Endpoint pour sauvegarder un skill tree avec ses compétences et dépendances."""
     if id != data.id:
-        raise HTTPException(
-            status_code=400, detail="ID in URL does not match ID in body"
-        )
+        raise HTTPException(status_code=400, detail="ID in URL does not match ID in body")
     if not await is_user_authorized_for_editing_by_id(db, id, user_id):
-        raise HTTPException(
-            status_code=403, detail="Not authorized to save this skill tree"
-        )
+        raise HTTPException(status_code=403, detail="Not authorized to save this skill tree")
     skill_tree = await save_skill_tree(db, data)
     if not skill_tree:
         raise HTTPException(status_code=500, detail="Skill tree could not be saved")
@@ -301,9 +288,7 @@ async def save_skill_tree_endpoint(
 # ========== FONCTIONS UTILITAIRES ==========
 
 
-async def is_user_authorized_for_editing_by_id(
-    db: AsyncSession, skill_tree_id: int, user_id: int
-) -> bool:
+async def is_user_authorized_for_editing_by_id(db: AsyncSession, skill_tree_id: int, user_id: int) -> bool:
     """Vérifie si l'utilisateur est autorisé à éditer le skill tree."""
     user_username = await get_user_username(db, user_id)
     if user_username is None:

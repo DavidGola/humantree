@@ -1,6 +1,6 @@
 import pytest
-from tests.conftest import register_user, auth_cookies, create_skill_tree
 
+from tests.conftest import auth_cookies, create_skill_tree, register_user
 
 # ========== GET ALL SKILL TREES ==========
 
@@ -398,9 +398,7 @@ async def test_delete_linked_tree_nullifies_skill(client):
     )
 
     # Supprimer l'arbre child
-    response = await client.delete(
-        f"/api/v1/skill-trees/{child['id']}", cookies=cookies
-    )
+    response = await client.delete(f"/api/v1/skill-trees/{child['id']}", cookies=cookies)
     assert response.status_code == 204
 
     # Vérifier que le skill parent a linked_tree_id = null
@@ -518,14 +516,10 @@ async def test_add_and_get_favorite(client):
     cookies = await auth_cookies(client)
     tree = await create_skill_tree(client, cookies)
 
-    response = await client.post(
-        f"/api/v1/skill-trees/favorite/{tree['id']}", cookies=cookies
-    )
+    response = await client.post(f"/api/v1/skill-trees/favorite/{tree['id']}", cookies=cookies)
     assert response.status_code == 200
 
-    response = await client.get(
-        "/api/v1/skill-trees/my-favorite-skill-trees", cookies=cookies
-    )
+    response = await client.get("/api/v1/skill-trees/my-favorite-skill-trees", cookies=cookies)
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -540,14 +534,10 @@ async def test_remove_favorite(client):
 
     await client.post(f"/api/v1/skill-trees/favorite/{tree['id']}", cookies=cookies)
 
-    response = await client.delete(
-        f"/api/v1/skill-trees/favorite/{tree['id']}", cookies=cookies
-    )
+    response = await client.delete(f"/api/v1/skill-trees/favorite/{tree['id']}", cookies=cookies)
     assert response.status_code == 200
 
-    response = await client.get(
-        "/api/v1/skill-trees/my-favorite-skill-trees", cookies=cookies
-    )
+    response = await client.get("/api/v1/skill-trees/my-favorite-skill-trees", cookies=cookies)
     assert response.status_code == 200
     assert response.json() == []
 

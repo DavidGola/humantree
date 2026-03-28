@@ -2,26 +2,22 @@
 
 import logging
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from sqlalchemy import select, delete
+from fastapi import HTTPException
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.skill_tree import SkillTree
+from app.models.skill import Skill
 from app.models.skill_dependencies import SkillDependency
-from fastapi import HTTPException
-
-logger = logging.getLogger(__name__)
-
 from app.schemas.skill import (
     SkillCreateSchema,
     SkillSchema,
-    SkillUpdateSchema,
     SkillSimpleSchema,
+    SkillUpdateSchema,
 )
 
-from app.models.skill import Skill
+logger = logging.getLogger(__name__)
 
 
 async def get_skill_by_id(db: AsyncSession, skill_id: int) -> SkillSchema | None:
@@ -35,9 +31,7 @@ async def get_skill_by_id(db: AsyncSession, skill_id: int) -> SkillSchema | None
     Returns:
         Un objet Skill ou None si non trouvé
     """
-    stmt = (
-        select(Skill).where(Skill.id == skill_id).options(selectinload(Skill.unlocks))
-    )
+    stmt = select(Skill).where(Skill.id == skill_id).options(selectinload(Skill.unlocks))
     result = await db.execute(stmt)
     skill = result.scalar_one_or_none()
     if skill is None:
@@ -81,9 +75,7 @@ async def update_skill(
     db: AsyncSession, skill_id: int, data: SkillUpdateSchema, commit: bool = True
 ) -> SkillSchema | None:
     """Met à jour un skill existant dans la base de données."""
-    stmt = (
-        select(Skill).where(Skill.id == skill_id).options(selectinload(Skill.unlocks))
-    )
+    stmt = select(Skill).where(Skill.id == skill_id).options(selectinload(Skill.unlocks))
     result = await db.execute(stmt)
     skill = result.scalar_one_or_none()
     if skill is None:
@@ -120,9 +112,7 @@ async def delete_skill(db: AsyncSession, skill_id: int, commit: bool = True) -> 
     return True
 
 
-async def create_skill_dependencies(
-    db: AsyncSession, id: int, unlock_ids: list[int]
-) -> None:
+async def create_skill_dependencies(db: AsyncSession, id: int, unlock_ids: list[int]) -> None:
     """Crée des dépendances de skill dans la base de données."""
     for unlock_id in unlock_ids:
         db.add(SkillDependency(skill_id=id, unlock_id=unlock_id))
@@ -134,7 +124,7 @@ async def create_skill_dependencies(
         if "foreign key" in error_msg or "is not present in table" in error_msg:
             raise HTTPException(
                 status_code=400,
-                detail=f"Skill référencé dans unlock_ids introuvable",
+                detail="Skill référencé dans unlock_ids introuvable",
             )
         logger.error("IntegrityError inattendue dans create_skill_dependencies: %s", e.orig)
         raise HTTPException(status_code=400, detail="Erreur d'intégrité des données")

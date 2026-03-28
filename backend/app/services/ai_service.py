@@ -2,8 +2,8 @@ import json
 import logging
 import re
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.api_key_service import get_api_key, list_api_keys
 
@@ -84,9 +84,12 @@ def _validate_tree_structure(data: dict) -> dict:
     return data
 
 
-async def _call_anthropic(api_key: str, prompt: str, system_prompt: str = SYSTEM_PROMPT, max_tokens: int = 4096, json_mode: bool = False) -> str:
+async def _call_anthropic(
+    api_key: str, prompt: str, system_prompt: str = SYSTEM_PROMPT, max_tokens: int = 4096, json_mode: bool = False
+) -> str:
     """Call Anthropic API."""
     import anthropic
+
     client = anthropic.AsyncAnthropic(api_key=api_key)
     message = await client.messages.create(
         model="claude-haiku-4-5-20251001",
@@ -97,9 +100,12 @@ async def _call_anthropic(api_key: str, prompt: str, system_prompt: str = SYSTEM
     return message.content[0].text
 
 
-async def _call_google(api_key: str, prompt: str, system_prompt: str = SYSTEM_PROMPT, max_tokens: int = 4096, json_mode: bool = False) -> str:
+async def _call_google(
+    api_key: str, prompt: str, system_prompt: str = SYSTEM_PROMPT, max_tokens: int = 4096, json_mode: bool = False
+) -> str:
     """Call Google Gemini API."""
     from google import genai
+
     client = genai.Client(api_key=api_key)
     config = {"system_instruction": system_prompt}
     if json_mode:
@@ -112,9 +118,12 @@ async def _call_google(api_key: str, prompt: str, system_prompt: str = SYSTEM_PR
     return response.text
 
 
-async def _call_openai(api_key: str, prompt: str, system_prompt: str = SYSTEM_PROMPT, max_tokens: int = 4096, json_mode: bool = False) -> str:
+async def _call_openai(
+    api_key: str, prompt: str, system_prompt: str = SYSTEM_PROMPT, max_tokens: int = 4096, json_mode: bool = False
+) -> str:
     """Call OpenAI API."""
     from openai import AsyncOpenAI
+
     client = AsyncOpenAI(api_key=api_key)
     kwargs = {
         "model": "gpt-4o-mini",
@@ -130,9 +139,7 @@ async def _call_openai(api_key: str, prompt: str, system_prompt: str = SYSTEM_PR
     return response.choices[0].message.content or ""
 
 
-async def generate_skill_tree(
-    db: AsyncSession, user_id: int, prompt: str, provider: str | None = None
-) -> dict:
+async def generate_skill_tree(db: AsyncSession, user_id: int, prompt: str, provider: str | None = None) -> dict:
     """Generate a skill tree using the user's AI API key."""
     # Determine provider
     if provider is None:
@@ -182,7 +189,9 @@ async def generate_skill_tree(
     return tree_data
 
 
-async def _call_provider(provider: str, api_key: str, prompt: str, system_prompt: str, max_tokens: int = 2048, json_mode: bool = False) -> str:
+async def _call_provider(
+    provider: str, api_key: str, prompt: str, system_prompt: str, max_tokens: int = 2048, json_mode: bool = False
+) -> str:
     """Route to the correct provider call."""
     if provider == "anthropic":
         return await _call_anthropic(api_key, prompt, system_prompt, max_tokens, json_mode)

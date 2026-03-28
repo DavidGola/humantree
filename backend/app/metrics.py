@@ -1,5 +1,5 @@
-from prometheus_fastapi_instrumentator import Instrumentator
 from prometheus_client import Counter, Gauge
+from prometheus_fastapi_instrumentator import Instrumentator
 
 instrumentator = Instrumentator(
     should_group_status_codes=False,

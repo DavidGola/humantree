@@ -1,31 +1,29 @@
-import logging
-from pythonjsonlogger import json as jsonlogger
-
-import time
 import asyncio
+import logging
+import os
+import time
+from contextlib import asynccontextmanager, suppress
 
-from fastapi import FastAPI, Request, Depends
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
+from pythonjsonlogger import json as jsonlogger
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.middleware.base import BaseHTTPMiddleware
-from app.database import engine, get_db
-from contextlib import asynccontextmanager
 
+from app.database import engine, get_db
 from app.limiter import limiter
-from app.routers.skill_trees import router as skill_trees_router
-from app.routers.skills import router as skills_router
-from app.routers.user import router as user_router
-from app.routers.api_keys import router as api_keys_router
+from app.metrics import counter_rate_limit_exceeded, db_pool_checked_out, instrumentator
 from app.routers.ai import router as ai_router
-from dotenv import load_dotenv
-from app.metrics import instrumentator, counter_rate_limit_exceeded, db_pool_checked_out
+from app.routers.api_keys import router as api_keys_router
+from app.routers.skill_trees import router as skill_trees_router
+from app.routers.user import router as user_router
 from app.tracing import setup_tracing
-import os
 
 json_handler = logging.StreamHandler()
 json_handler.setFormatter(
@@ -45,10 +43,8 @@ async def lifespan(app: FastAPI):
 
     async def monitor_db_pool():
         while True:
-            try:
+            with suppress(Exception):
                 db_pool_checked_out.set(engine.pool.checkedout())
-            except Exception:
-                pass
             await asyncio.sleep(15)
 
     task = asyncio.create_task(monitor_db_pool())
@@ -83,9 +79,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         if content_length and int(content_length) > MAX_CONTENT_LENGTH:
             return JSONResponse(
                 status_code=413,
-                content={
-                    "detail": "Le contenu dépasse la taille maximale autorisée (1 Mo)."
-                },
+                content={"detail": "Le contenu dépasse la taille maximale autorisée (1 Mo)."},
             )
 
         start = time.perf_counter()
@@ -106,9 +100,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         elif status >= 400:
             logger.warning("request", extra=log_data)
             if status == 429:
-                counter_rate_limit_exceeded.labels(
-                    method=request.method, path=request.url.path
-                ).inc()
+                counter_rate_limit_exceeded.labels(method=request.method, path=request.url.path).inc()
         else:
             logger.info("request", extra=log_data)
 
@@ -116,14 +108,14 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = (
-            "camera=(), microphone=(), geolocation=()"
-        )
-        response.headers["Strict-Transport-Security"] = (
-            "max-age=63072000; includeSubDomains"
-        )
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
         response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://humantree.vps.webdock.cloud"
+            "default-src 'self'; script-src 'self'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' https://humantree.vps.webdock.cloud"
         )
 
         return response
@@ -151,11 +143,7 @@ async def integrity_error_handler(request: Request, exc: IntegrityError):
             status_code=409,
             content={"detail": "Conflit : une ressource avec ces données existe déjà"},
         )
-    if (
-        "foreign key" in error_msg
-        or "fk_" in error_msg
-        or "is not present in table" in error_msg
-    ):
+    if "foreign key" in error_msg or "fk_" in error_msg or "is not present in table" in error_msg:
         return JSONResponse(
             status_code=400,
             content={"detail": "Référence invalide : la ressource liée n'existe pas"},

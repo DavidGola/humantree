@@ -1,6 +1,8 @@
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import ForeignKey, UniqueConstraint, Index, func
 from datetime import datetime
+
+from sqlalchemy import ForeignKey, Index, UniqueConstraint, func
+from sqlalchemy.orm import Mapped, mapped_column
+
 from app.models.base_model import BaseModel
 
 
@@ -9,9 +11,7 @@ class UserCheckSkill(BaseModel):
 
     __tablename__ = "user_check_skill"
     __table_args__ = (
-        UniqueConstraint(
-            "user_id", "skill_id", name="user_check_skill_user_id_skill_id_key"
-        ),
+        UniqueConstraint("user_id", "skill_id", name="user_check_skill_user_id_skill_id_key"),
         Index("ix_user_check_skill_skill_id", "skill_id"),
     )
     id: Mapped[int] = mapped_column(primary_key=True)

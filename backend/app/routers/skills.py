@@ -5,8 +5,7 @@
 # ========== IMPORTS ==========
 
 # FastAPI core
-from fastapi import APIRouter, Depends
-from fastapi import HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 # SQLAlchemy
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,24 +13,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # Database
 from app.database import get_db
 
-# Services
-from app.services.skill_service import (
-    create_skill,
-    update_skill,
-    delete_skill,
-    get_skill_by_id,
-    create_skill_dependencies,
-    delete_all_dependencies_for_skill,
-)
-
 # Schemas
 from app.schemas.skill import (
     SkillCreateSchema,
     SkillSchema,
-    SkillUpdateSchema,
     SkillSimpleSchema,
+    SkillUpdateSchema,
 )
 
+# Services
+from app.services.skill_service import (
+    create_skill,
+    delete_skill,
+    get_skill_by_id,
+    update_skill,
+)
 
 # ========== CRÉATION DU ROUTER ==========
 router = APIRouter(

@@ -1,22 +1,13 @@
 import asyncio
 from logging.config import fileConfig
-from app.database import POSTGRES_DATABASE_URL
-from app.models.base_model import BaseModel
-from app.models.skill import Skill
-from app.models.skill_tree import SkillTree
-from app.models.skill_dependencies import SkillDependency
-from app.models.user import User
-from app.models.user_check_skill import UserCheckSkill
-from app.models.user_favorite_trees import UserFavoriteTrees
-from app.models.tokens import Token
-from app.models.tag import Tag, SkillTreeTag
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-
+from app.database import POSTGRES_DATABASE_URL
+from app.models.base_model import BaseModel
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.services.auth_service import get_current_user
-from app.services.api_key_service import save_api_key, list_api_keys, delete_api_key
 from app.schemas.api_key import ApiKeyCreateSchema, ApiKeyResponseSchema
+from app.services.api_key_service import delete_api_key, list_api_keys, save_api_key
+from app.services.auth_service import get_current_user
 
 router = APIRouter(
     prefix="/api/v1/users/api-keys",
@@ -50,4 +50,5 @@ async def delete_api_key_route(
     deleted = await delete_api_key(db, user_id, provider)
     if not deleted:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=404, detail="API key not found")

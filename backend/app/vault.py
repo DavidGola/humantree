@@ -10,8 +10,9 @@ Fallback dev :
 - Si VAULT_TOKEN présent → mode dev (token statique, pas d'AppRole)
 """
 
-import os
 import logging
+import os
+
 import httpx
 
 logger = logging.getLogger(__name__)

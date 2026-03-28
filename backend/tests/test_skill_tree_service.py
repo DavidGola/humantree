@@ -1,10 +1,13 @@
 import pytest
-from app.services.skill_tree_service import is_root_skill_valid
+
 from app.schemas.skill import SkillSaveSchema
+from app.services.skill_tree_service import is_root_skill_valid
 
 
-def skill(id: int, name: str, is_root: bool, unlock_ids: list[int] = []) -> SkillSaveSchema:
+def skill(id: int, name: str, is_root: bool, unlock_ids: list[int] = None) -> SkillSaveSchema:
     """Helper pour créer un SkillSaveSchema avec moins de bruit."""
+    if unlock_ids is None:
+        unlock_ids = []
     return SkillSaveSchema(id=id, name=name, is_root=is_root, unlock_ids=unlock_ids)
 
 

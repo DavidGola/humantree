@@ -1,20 +1,19 @@
 # /backend/app/services/auth_service.py
 
-import os
-from app.schemas.auth import JWTTokenSchema
-import jwt
-from jwt.exceptions import PyJWTError
-from datetime import datetime, timedelta, timezone
-from fastapi import HTTPException, Request
+from datetime import UTC, datetime, timedelta
 from secrets import token_urlsafe
+
+import jwt
+from dotenv import load_dotenv
+from fastapi import HTTPException, Request
+from jwt.exceptions import PyJWTError
+from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import insert, select, delete
+
 from app.models.tokens import Token
+from app.schemas.auth import JWTTokenSchema
 from app.services.user_service import get_user_username
 from app.vault import get_secret
-
-from dotenv import load_dotenv
-
 
 load_dotenv()
 SECRET_KEY = get_secret("humantree/jwt", "SECRET_KEY")
@@ -22,29 +21,26 @@ if not SECRET_KEY or SECRET_KEY == "":
     raise ValueError("SECRET_KEY is not set in the environment variables")
 
 
-async def create_jwt_token(
-    db: AsyncSession, user_id: int, username: str
-) -> JWTTokenSchema:
+async def create_jwt_token(db: AsyncSession, user_id: int, username: str) -> JWTTokenSchema:
     """Génère un token JWT pour l'utilisateur authentifié."""
     refresh_token = token_urlsafe(32)
     # Nettoyer les tokens expirés de cet utilisateur
     await db.execute(
         delete(Token).where(
             Token.user_id == user_id,
-            Token.expires_at < datetime.now(timezone.utc),
+            Token.expires_at < datetime.now(UTC),
         )
     )
     stmt = insert(Token).values(
         user_id=user_id,
         token=refresh_token,
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
     )
     await db.execute(stmt)
     await db.commit()
     payload = {
         "sub": str(user_id),  # Identifiant de l'utilisateur
-        "exp": datetime.now(timezone.utc)
-        + timedelta(minutes=15),  # Expiration du token
+        "exp": datetime.now(UTC) + timedelta(minutes=15),  # Expiration du token
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     return JWTTokenSchema(
@@ -77,7 +73,7 @@ async def refresh_jwt_token(db: AsyncSession, refresh_token: str) -> JWTTokenSch
     stmt = select(Token).where(Token.token == refresh_token)
     result = await db.execute(stmt)
     token_entry = result.scalar_one_or_none()
-    if not token_entry or token_entry.expires_at < datetime.now(timezone.utc):
+    if not token_entry or token_entry.expires_at < datetime.now(UTC):
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
 
     # Supprimez le token de rafraîchissement utilisé pour éviter les réutilisations

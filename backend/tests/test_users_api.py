@@ -1,6 +1,6 @@
 import pytest
-from tests.conftest import register_user, login_user, auth_cookies, create_skill_tree
 
+from tests.conftest import auth_cookies, create_skill_tree, register_user
 
 # ========== REGISTER ==========
 
@@ -259,9 +259,7 @@ async def test_remove_skill_checked(client):
         json={"skill_id": skill_id},
         cookies=cookies,
     )
-    response = await client.delete(
-        f"/api/v1/users/skills-checked/{skill_id}", cookies=cookies
-    )
+    response = await client.delete(f"/api/v1/users/skills-checked/{skill_id}", cookies=cookies)
     assert response.status_code == 204
 
     # Vérifier que la liste est vide
@@ -272,9 +270,7 @@ async def test_remove_skill_checked(client):
 
 @pytest.mark.asyncio
 async def test_add_skill_checked_unauthenticated(client):
-    response = await client.post(
-        "/api/v1/users/skills-checked", json={"skill_id": 1}
-    )
+    response = await client.post("/api/v1/users/skills-checked", json={"skill_id": 1})
     assert response.status_code == 401
 
 

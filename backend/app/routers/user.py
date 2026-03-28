@@ -6,55 +6,48 @@
 
 # FastAPI core
 
-from fastapi import APIRouter, Depends, Request
-from fastapi import HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
-from fastapi import Cookie
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
-
-from app.limiter import limiter
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import delete as sa_delete
+from sqlalchemy import func, select
 
 # SQLAlchemy
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, delete as sa_delete
-from app.models.user_check_skill import UserCheckSkill
-from app.models.tokens import Token
 
 # Database
 from app.database import get_db
+from app.limiter import limiter
+from app.models.tokens import Token
+from app.models.user_check_skill import UserCheckSkill
 
-
-# Services
-from app.services.user_service import (
-    register_user,
-    authenticate_user,
-    get_user_skills_checked,
-    add_user_skill_checked,
-    remove_user_skill_checked,
-    get_user_public_by_username,
-    get_user_by_id,
-    update_user,
+# Schemas
+from app.schemas.user import (
+    UserCreateSchema,
+    UserLoginSchema,
+    UserOneSkillCheckedSchema,
+    UserPublicDetailSchema,
+    UserSchema,
+    UserSkillsCheckedSchema,
+    UserUpdateSchema,
 )
-
 from app.services.auth_service import (
     create_jwt_token,
     get_current_user,
     refresh_jwt_token,
 )
 
-# Schemas
-from app.schemas.user import (
-    UserSchema,
-    UserSkillsCheckedSchema,
-    UserCreateSchema,
-    UserLoginSchema,
-    UserUpdateSchema,
-    UserOneSkillCheckedSchema,
-    UserPublicDetailSchema,
-    UserFavoriteTreesSchema,
+# Services
+from app.services.user_service import (
+    add_user_skill_checked,
+    authenticate_user,
+    get_user_by_id,
+    get_user_public_by_username,
+    get_user_skills_checked,
+    register_user,
+    remove_user_skill_checked,
+    update_user,
 )
-from app.schemas.auth import JWTTokenSchema
-
 
 # ========== CRÉATION DU ROUTER ==========
 router = APIRouter(
@@ -110,9 +103,7 @@ async def login(
         Un token JWT si l'authentification est réussie, sinon une erreur 401
     """
 
-    user_login = UserLoginSchema(
-        email_or_username=data.username, password=data.password
-    )
+    user_login = UserLoginSchema(email_or_username=data.username, password=data.password)
     user = await authenticate_user(db, user_login)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -170,9 +161,7 @@ async def logout(
 @limiter.limit("10/minute")
 async def refresh_token(
     request: Request,
-    refresh_token: str = Cookie(
-        ..., description="Refresh token stored in a secure cookie"
-    ),
+    refresh_token: str = Cookie(..., description="Refresh token stored in a secure cookie"),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -213,9 +202,7 @@ async def refresh_token(
     description="Retrieve a list of skill IDs that the user has checked/acquired",
 )
 async def get_user_skills_checked_route(
-    user_id: int = Depends(
-        get_current_user
-    ),  # Récupère l'ID de l'utilisateur à partir du token JWT
+    user_id: int = Depends(get_current_user),  # Récupère l'ID de l'utilisateur à partir du token JWT
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -237,9 +224,7 @@ async def get_user_skills_checked_route(
 )
 async def add_user_skill_checked_route(
     data: UserOneSkillCheckedSchema,
-    user_id: int = Depends(
-        get_current_user
-    ),  # Récupère l'ID de l'utilisateur à partir du token JWT
+    user_id: int = Depends(get_current_user),  # Récupère l'ID de l'utilisateur à partir du token JWT
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -262,9 +247,7 @@ async def add_user_skill_checked_route(
 )
 async def remove_user_skill_checked_route(
     skill_id: int,
-    user_id: int = Depends(
-        get_current_user
-    ),  # Récupère l'ID de l'utilisateur à partir du token JWT
+    user_id: int = Depends(get_current_user),  # Récupère l'ID de l'utilisateur à partir du token JWT
     # ID de la compétence à supprimer (extrait de l'URL)
     db: AsyncSession = Depends(get_db),
 ):
@@ -284,9 +267,7 @@ async def remove_user_skill_checked_route(
     description="Retrieve details of the currently authenticated user based on the JWT token",
 )
 async def get_current_user_details(
-    user_id: int = Depends(
-        get_current_user
-    ),  # Récupère l'ID de l'utilisateur à partir du token JWT
+    user_id: int = Depends(get_current_user),  # Récupère l'ID de l'utilisateur à partir du token JWT
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -300,11 +281,7 @@ async def get_current_user_details(
     user = await get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    stmt = (
-        select(func.count())
-        .select_from(UserCheckSkill)
-        .where(UserCheckSkill.user_id == user_id)
-    )
+    stmt = select(func.count()).select_from(UserCheckSkill).where(UserCheckSkill.user_id == user_id)
     skills_count = (await db.execute(stmt)).scalar() or 0
     return UserSchema(
         id=user.id,
@@ -349,9 +326,7 @@ async def get_user_public_by_username_route(
 )
 async def update_current_user_details_route(
     data: UserUpdateSchema,
-    user_id: int = Depends(
-        get_current_user
-    ),  # Récupère l'ID de l'utilisateur à partir du token JWT
+    user_id: int = Depends(get_current_user),  # Récupère l'ID de l'utilisateur à partir du token JWT
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -363,7 +338,8 @@ async def update_current_user_details_route(
         password: Nouveau mot de passe (optionnel)
 
     Returns:
-        Détails de l'utilisateur mis à jour au format UserSchema si la mise à jour est réussie, sinon une erreur 404 ou 400
+        Détails de l'utilisateur mis à jour au format UserSchema si la mise à jour
+        est réussie, sinon une erreur 404 ou 400
     """
     updated_user = await update_user(db, user_id, data)
     if not updated_user:

@@ -1,7 +1,10 @@
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Text, ForeignKey, UniqueConstraint, Index, func, text
 from datetime import datetime
+
+from sqlalchemy import ForeignKey, Index, String, Text, UniqueConstraint, func, text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.models.base_model import BaseModel
+
 from .skill_dependencies import SkillDependency
 
 
@@ -17,15 +20,13 @@ class Skill(BaseModel):
             "skill_tree_id",
             "id",
             unique=True,
-            postgresql_where=(mapped_column("is_root") == True),
+            postgresql_where=(mapped_column("is_root")),
         ),
     )
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100))
     description: Mapped[str | None] = mapped_column(Text)
-    skill_tree_id: Mapped[int] = mapped_column(
-        ForeignKey("skill_trees.id", ondelete="CASCADE")
-    )
+    skill_tree_id: Mapped[int] = mapped_column(ForeignKey("skill_trees.id", ondelete="CASCADE"))
     is_root: Mapped[bool] = mapped_column(default=False, server_default=text("false"))
     linked_tree_id: Mapped[int | None] = mapped_column(
         ForeignKey("skill_trees.id", ondelete="SET NULL"), nullable=True, default=None

@@ -1,7 +1,9 @@
 import re
 from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from .skill import SkillSchema, SkillSaveSchema
+
+from .skill import SkillSaveSchema, SkillSchema
 
 TAG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
@@ -20,9 +22,7 @@ def _validate_tags(tags: list[str] | None) -> list[str] | None:
         if len(t) > 30:
             raise ValueError(f"Le tag '{t}' dépasse 30 caractères")
         if not TAG_PATTERN.match(t):
-            raise ValueError(
-                f"Le tag '{t}' contient des caractères invalides (alphanumériques et tirets uniquement)"
-            )
+            raise ValueError(f"Le tag '{t}' contient des caractères invalides (alphanumériques et tirets uniquement)")
         if t not in seen:
             seen.add(t)
             cleaned.append(t)

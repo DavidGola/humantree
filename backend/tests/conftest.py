@@ -1,15 +1,18 @@
-import pytest_asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from sqlalchemy.pool import NullPool
-from httpx import AsyncClient, ASGITransport
-
-from app.main import app
-from app.database import get_db
-from app.models.base_model import BaseModel
-from app.limiter import limiter
-
 import os
+
+# Doit être AVANT l'import de app.main pour désactiver le tracing
+os.environ["ENVIRONMENT"] = "test"
+
+import pytest_asyncio
 from dotenv import load_dotenv
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
+
+from app.database import get_db
+from app.limiter import limiter
+from app.main import app
+from app.models.base_model import BaseModel
 
 load_dotenv()
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
@@ -38,9 +41,7 @@ async def client(setup_db):
     app.dependency_overrides[get_db] = get_db_test
     limiter.enabled = False
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
     limiter.enabled = True

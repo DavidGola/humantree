@@ -1,5 +1,4 @@
-from datetime import datetime
-from pydantic import BaseModel, ConfigDict, field_validator, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class SkillSchema(BaseModel):
@@ -19,9 +18,7 @@ class SkillSchema(BaseModel):
         """Extract unlock IDs from Skill model relationships."""
         if not v:
             return []
-        unlock_ids = [
-            skill.id for skill in v
-        ]  # Assuming 'v' is a list of Skill model instances
+        unlock_ids = [skill.id for skill in v]  # Assuming 'v' is a list of Skill model instances
 
         return unlock_ids
 

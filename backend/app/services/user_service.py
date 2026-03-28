@@ -1,27 +1,22 @@
 # /backend/app/services/user_service.py
 
+from bcrypt import checkpw, gensalt, hashpw
+from fastapi import HTTPException
+from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from sqlalchemy import select, delete, func
-from sqlalchemy.exc import IntegrityError
-from app.models.user_check_skill import UserCheckSkill
-from app.models.user_favorite_trees import UserFavoriteTrees
-from fastapi import HTTPException, logger
-
-from app.schemas.user import (
-    UserSchema,
-    UserUpdateSchema,
-    UserCreateSchema,
-    UserLoginSchema,
-    UserCheckSkillsSchema,
-    UserPublicDetailSchema,
-    UserFavoriteTreesSchema,
-)
 from app.models.skill_tree import SkillTree
 from app.models.user import User
-
-
-from bcrypt import hashpw, gensalt, checkpw
+from app.models.user_check_skill import UserCheckSkill
+from app.schemas.user import (
+    UserCheckSkillsSchema,
+    UserCreateSchema,
+    UserLoginSchema,
+    UserPublicDetailSchema,
+    UserSchema,
+    UserUpdateSchema,
+)
 
 
 async def register_user(db: AsyncSession, user: UserCreateSchema) -> UserSchema:
@@ -48,13 +43,10 @@ async def register_user(db: AsyncSession, user: UserCreateSchema) -> UserSchema:
     return UserSchema.model_validate(new_user)
 
 
-async def authenticate_user(
-    db: AsyncSession, user_login: UserLoginSchema
-) -> UserSchema | None:
+async def authenticate_user(db: AsyncSession, user_login: UserLoginSchema) -> UserSchema | None:
     """Authentifie un utilisateur en vérifiant son email et mot de passe."""
     stmt = select(User).where(
-        (User.email == user_login.email_or_username)
-        | (User.username == user_login.email_or_username)
+        (User.email == user_login.email_or_username) | (User.username == user_login.email_or_username)
     )
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
@@ -65,9 +57,7 @@ async def authenticate_user(
     return None
 
 
-async def get_user_skills_checked(
-    db: AsyncSession, user_id: int
-) -> UserCheckSkillsSchema:
+async def get_user_skills_checked(db: AsyncSession, user_id: int) -> UserCheckSkillsSchema:
     """Récupère la liste des IDs de compétences acquises par l'utilisateur."""
     stmt = select(UserCheckSkill.skill_id).where(UserCheckSkill.user_id == user_id)
     result = await db.execute(stmt)
@@ -86,20 +76,14 @@ async def add_user_skill_checked(db: AsyncSession, user_id: int, skill_id: int) 
         raise HTTPException(status_code=409, detail="Skill already checked")
 
 
-async def remove_user_skill_checked(
-    db: AsyncSession, user_id: int, skill_id: int
-) -> None:
+async def remove_user_skill_checked(db: AsyncSession, user_id: int, skill_id: int) -> None:
     """Supprime une compétence acquise pour un utilisateur."""
-    stmt = delete(UserCheckSkill).where(
-        UserCheckSkill.user_id == user_id, UserCheckSkill.skill_id == skill_id
-    )
+    stmt = delete(UserCheckSkill).where(UserCheckSkill.user_id == user_id, UserCheckSkill.skill_id == skill_id)
     await db.execute(stmt)
     await db.commit()
 
 
-async def update_user(
-    db: AsyncSession, user_id: int, data: UserUpdateSchema
-) -> UserSchema | None:
+async def update_user(db: AsyncSession, user_id: int, data: UserUpdateSchema) -> UserSchema | None:
     """Met à jour les informations d'un utilisateur existant dans la base de données."""
     stmt = select(User).where(User.id == user_id)
     result = await db.execute(stmt)
@@ -118,9 +102,7 @@ async def update_user(
             raise HTTPException(status_code=409, detail="Email already registered")
         user.email = data.email
     if data.password is not None:
-        user.password_hash = hashpw(data.password.encode("utf-8"), gensalt()).decode(
-            "utf-8"
-        )
+        user.password_hash = hashpw(data.password.encode("utf-8"), gensalt()).decode("utf-8")
     if data.bio is not None:
         user.bio = data.bio
     if data.avatar_url is not None:
@@ -156,9 +138,7 @@ async def get_user_username(db: AsyncSession, user_id: int) -> str | None:
     return username
 
 
-async def get_user_public_by_username(
-    db: AsyncSession, username: str
-) -> UserPublicDetailSchema | None:
+async def get_user_public_by_username(db: AsyncSession, username: str) -> UserPublicDetailSchema | None:
     """Récupère les détails publics d'un utilisateur avec stats."""
     stmt = select(User).where(User.username == username)
     result = await db.execute(stmt)
@@ -167,15 +147,11 @@ async def get_user_public_by_username(
         return None
 
     # Count trees created
-    trees_stmt = select(func.count()).select_from(SkillTree).where(
-        SkillTree.creator_username == username
-    )
+    trees_stmt = select(func.count()).select_from(SkillTree).where(SkillTree.creator_username == username)
     trees_count = (await db.execute(trees_stmt)).scalar() or 0
 
     # Count skills checked
-    skills_stmt = select(func.count()).select_from(UserCheckSkill).where(
-        UserCheckSkill.user_id == user.id
-    )
+    skills_stmt = select(func.count()).select_from(UserCheckSkill).where(UserCheckSkill.user_id == user.id)
     skills_checked_count = (await db.execute(skills_stmt)).scalar() or 0
 
     return UserPublicDetailSchema(
