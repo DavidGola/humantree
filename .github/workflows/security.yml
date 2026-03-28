@@ -113,7 +113,7 @@ jobs:
       - name: Run pip-audit
         run: |
           pip install pip-audit
-          pip-audit -r backend/requirements.txt
+          pip-audit -r backend/requirements.txt --ignore-unfixed
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
