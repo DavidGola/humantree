@@ -62,12 +62,12 @@ export const RichTextEditor = ({
   if (!editor) return null;
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="flex flex-col flex-1 min-h-0 p-4">
       {editable && <RichTextToolbar editor={editor} />}
       <div className="flex-1 overflow-y-auto">
         <EditorContent
           editor={editor}
-          className="prose dark:prose-invert max-w-none"
+          className="prose dark:prose-invert max-w-none prose-p:text-gray-700 dark:prose-p:text-slate-300 prose-headings:text-gray-900 dark:prose-headings:text-white"
         />
       </div>
     </div>

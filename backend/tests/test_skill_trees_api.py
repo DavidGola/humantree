@@ -601,4 +601,9 @@ async def test_trendings_monthly(client):
 async def test_health_check(client):
     response = await client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    data = response.json()
+    assert data["status"] == "ok"
+    assert "checks" in data
+    assert data["checks"]["database"]["status"] == "ok"
+    assert "latency_ms" in data["checks"]["database"]
+    assert "db_pool" in data["checks"]

@@ -1,9 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useId } from "react";
 
 const sizeClasses = {
   default: "max-w-md",
   large: "max-w-4xl max-h-[85vh] flex flex-col",
 };
+
+const FOCUSABLE_SELECTOR =
+  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 export const Modal = ({
   title,
@@ -16,23 +19,61 @@ export const Modal = ({
   onClose: () => void;
   size?: "default" | "large";
 }) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousActiveElement = useRef<HTMLElement | null>(null);
+  const titleId = useId();
+
+  useEffect(() => {
+    // Sauvegarder l'élément actif avant l'ouverture
+    previousActiveElement.current = document.activeElement as HTMLElement;
+
+    // Focus sur le premier élément focusable
+    const firstFocusable = modalRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+    firstFocusable?.focus();
+
+    // Restaurer le focus à la fermeture
+    return () => {
+      previousActiveElement.current?.focus();
+    };
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
+        return;
+      }
+
+      // Focus trap: Tab navigation
+      if (e.key === "Tab" && modalRef.current) {
+        const focusables = modalRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
       }
     };
+
     document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
+
   return (
     <div
       className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-[60]"
       onClick={onClose}
     >
       <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
         className={`relative rounded-2xl p-6 w-full surface-strong overflow-hidden animate-modal-enter shadow-xl ${sizeClasses[size]}`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -51,7 +92,10 @@ export const Modal = ({
         </button>
 
         {title && (
-          <h2 className="text-xl font-display font-bold text-gray-800 dark:text-white mb-5 pt-1 pr-8">
+          <h2
+            id={titleId}
+            className="text-xl font-display font-bold text-gray-800 dark:text-white mb-5 pt-1 pr-8"
+          >
             {title}
           </h2>
         )}

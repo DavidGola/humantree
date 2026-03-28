@@ -4,14 +4,16 @@ from pythonjsonlogger import json as jsonlogger
 import time
 import asyncio
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
-from app.database import engine
+from app.database import engine, get_db
 from contextlib import asynccontextmanager
 
 from app.limiter import limiter
@@ -180,6 +182,33 @@ instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schem
 
 
 @app.get("/health", tags=["Health Check"])
-def health_check():
-    """Health check endpoint."""
-    return {"status": "ok"}
+async def health_check(db: AsyncSession = Depends(get_db)):
+    """Health check endpoint avec vérification DB et pool."""
+    checks = {"status": "ok", "checks": {}}
+
+    # Check DB connectivity
+    try:
+        start = time.perf_counter()
+        await db.execute(text("SELECT 1"))
+        db_latency_ms = (time.perf_counter() - start) * 1000
+        checks["checks"]["database"] = {
+            "status": "ok",
+            "latency_ms": round(db_latency_ms, 2),
+        }
+    except Exception as e:
+        checks["status"] = "degraded"
+        checks["checks"]["database"] = {"status": "error", "error": str(e)}
+
+    # Check DB pool
+    try:
+        pool = engine.pool
+        checks["checks"]["db_pool"] = {
+            "size": pool.size(),
+            "checked_out": pool.checkedout(),
+            "overflow": pool.overflow(),
+        }
+    except Exception as e:
+        checks["checks"]["db_pool"] = {"status": "error", "error": str(e)}
+
+    status_code = 200 if checks["status"] == "ok" else 503
+    return JSONResponse(content=checks, status_code=status_code)

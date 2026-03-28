@@ -13,13 +13,13 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: humantree_user
-          POSTGRES_PASSWORD: tree94
-          POSTGRES_DB: humantree_test
+          POSTGRES_USER: ci_temp_user
+          POSTGRES_PASSWORD: ci_temp_pass
+          POSTGRES_DB: ci_temp_db
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U humantree_user -d humantree_test"
+          --health-cmd "pg_isready -U ci_temp_user -d ci_temp_db"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
@@ -42,7 +42,7 @@ jobs:
 
       - name: Run backend tests
         env:
-          TEST_DATABASE_URL: postgresql+asyncpg://humantree_user:tree94@localhost:5432/humantree_test
+          TEST_DATABASE_URL: postgresql+asyncpg://ci_temp_user:ci_temp_pass@localhost:5432/ci_temp_db
           SECRET_KEY: test-secret-key-for-ci
           ENCRYPTION_KEY: test-encryption-key-for-ci
           ENVIRONMENT: test
@@ -50,6 +50,15 @@ jobs:
         run: |
           cd backend
           python -m pytest tests/ -v
+
+      - name: Check Alembic migrations
+        env:
+          POSTGRES_DATABASE_URL_DEV: postgresql+asyncpg://ci_temp_user:ci_temp_pass@localhost:5432/ci_temp_db
+          ENVIRONMENT: development
+        run: |
+          cd backend
+          alembic upgrade head
+          alembic check
 
       # ===== Frontend tests =====
       - name: Set up Node.js
