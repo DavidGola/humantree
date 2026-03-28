@@ -11,6 +11,8 @@ updates:
     labels:
       - "dependencies"
       - "security"
+    ignore:
+      - dependency-name: "pydantic-core"  # géré par pydantic
 
   # Node.js frontend
   - package-ecosystem: "npm"
