@@ -71,7 +71,7 @@ pluggy==1.6.0
 prometheus-fastapi-instrumentator==7.1.0
 prometheus_client==0.24.1
 propcache==0.4.1
-protobuf==6.33.6
+protobuf==7.34.1
 py-serializable==2.1.0
 pyasn1==0.6.3
 pyasn1_modules==0.4.2
