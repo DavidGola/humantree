@@ -69,7 +69,7 @@ describe("SkillDetailModal", () => {
 
   it("affiche un input pour le nom en mode édition", () => {
     render(<SkillDetailModal {...defaultProps} isEditing={true} />);
-    const input = screen.getByPlaceholderText("Nom de la compétence");
+    const input = screen.getByPlaceholderText("Ex: Apprendre les bases de Python");
     expect(input).toBeDefined();
     expect((input as HTMLInputElement).value).toBe("JavaScript");
   });
@@ -94,7 +94,7 @@ describe("SkillDetailModal", () => {
     );
 
     // Modifier le nom
-    const input = screen.getByPlaceholderText("Nom de la compétence");
+    const input = screen.getByPlaceholderText("Ex: Apprendre les bases de Python");
     fireEvent.change(input, { target: { value: "TypeScript" } });
 
     // Cliquer sur Enregistrer
