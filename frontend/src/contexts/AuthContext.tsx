@@ -3,14 +3,17 @@ import { toast } from "react-hot-toast";
 import { userApi } from "../api/userApi";
 import { getApiErrorMessage } from "../utils/apiErrors";
 
-const AuthContext = createContext({
-  isAuthenticated: false,
-  isLoggingIn: false,
-  login: (_e: React.FormEvent, _mail: string, _password: string) => {},
-  logout: () => {},
-  username: "",
-});
+interface AuthContextType {
+  isAuthenticated: boolean;
+  isLoggingIn: boolean;
+  login: (e: React.FormEvent, mail: string, password: string) => void;
+  logout: () => void;
+  username: string;
+}
 
+const AuthContext = createContext<AuthContextType | null>(null);
+
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -81,12 +84,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setIsAuthenticated(true);
           try {
             localStorage.setItem("username", user.username);
-          } catch {}
+          } catch { /* localStorage peut échouer en navigation privée */ }
         })
         .catch(() => {
           try {
             localStorage.removeItem("username");
-          } catch {}
+          } catch { /* localStorage peut échouer en navigation privée */ }
         });
     }
   }, []);
@@ -96,7 +99,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const handleForceLogout = () => {
       try {
         localStorage.removeItem("username");
-      } catch {}
+      } catch { /* localStorage peut échouer en navigation privée */ }
       setUsername("");
       setIsAuthenticated(false);
       toast.error("Session expirée. Veuillez vous reconnecter.");

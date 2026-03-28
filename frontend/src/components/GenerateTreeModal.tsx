@@ -6,6 +6,7 @@ import { aiApi, type GeneratedTree } from "../api/aiApi";
 import { apiKeyApi } from "../api/apiKeyApi";
 import { skillTreeApi } from "../api/skillTreeApi";
 import { useNavigate } from "react-router-dom";
+import { getApiErrorMessage } from "../utils/apiErrors";
 
 interface GenerateTreeModalProps {
   onClose: () => void;
@@ -202,8 +203,7 @@ export default function GenerateTreeModal({ onClose }: GenerateTreeModalProps) {
         </div>
         {generateMutation.isError && (
           <p className="text-xs text-red-500">
-            {(generateMutation.error as any)?.response?.data?.detail ??
-              "Erreur lors de la génération."}
+            {getApiErrorMessage(generateMutation.error)}
           </p>
         )}
       </div>

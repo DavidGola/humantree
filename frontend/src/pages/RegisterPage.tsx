@@ -34,8 +34,8 @@ function RegisterPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    let u = removeSpaces(username);
-    let em = removeSpaces(email);
+    const u = removeSpaces(username);
+    const em = removeSpaces(email);
 
     if (!u || !em || !password || !confirmPassword) {
       toast.error("Veuillez remplir tous les champs.");

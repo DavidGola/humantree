@@ -9,7 +9,7 @@ import { Modal } from "./Modal";
 export const Navbar = () => {
   const { isAuthenticated, isLoggingIn, username, login, logout } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
-  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(() => !localStorage.getItem("has_seen_help"));
   const [loginOpen, setLoginOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mailOrUsername, setMailOrUsername] = useState("");
@@ -17,12 +17,6 @@ export const Navbar = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    if (!localStorage.getItem("has_seen_help")) {
-      setHelpOpen(true);
-    }
-  }, []);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -38,6 +32,7 @@ export const Navbar = () => {
   // Close login modal on successful auth
   useEffect(() => {
     if (isAuthenticated && loginOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoginOpen(false);
       setMailOrUsername("");
       setPassword("");
