@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 from app.database import POSTGRES_DATABASE_URL
 from app.models.base_model import BaseModel
+import app.models  # noqa: F401 - charge tous les models pour le metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
