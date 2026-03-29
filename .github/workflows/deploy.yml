@@ -158,13 +158,13 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            set -e
             git config --global --add safe.directory /srv/humantree
             cd /srv/humantree
             git pull origin main
-            sudo cp nginx/humantree.conf /etc/nginx/sites-available/humantree
-            sudo nginx -t && sudo systemctl reload nginx
+            sudo cp nginx/humantree.conf /etc/nginx/sites-available/humantree || true
+            sudo nginx -t && sudo systemctl reload nginx || true
             echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ secrets.SSH_USER }} --password-stdin
+            set -e
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --force-recreate --pull always
             docker system prune -af
