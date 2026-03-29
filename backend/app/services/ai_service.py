@@ -1,13 +1,39 @@
 import json
 import logging
 import re
+import time
+from dataclasses import dataclass
 
 from fastapi import HTTPException
+from opentelemetry import trace
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.metrics import (
+    llm_estimated_cost_dollars,
+    llm_request_duration_seconds,
+    llm_requests_total,
+    llm_tokens_total,
+)
 from app.services.api_key_service import get_api_key, list_api_keys
 
 logger = logging.getLogger(__name__)
+tracer = trace.get_tracer("humantree.ai_service")
+
+
+@dataclass
+class LLMResult:
+    text: str
+    input_tokens: int
+    output_tokens: int
+    model: str
+    provider: str
+
+
+COST_PER_TOKEN = {
+    "claude-haiku-4-5-20251001": {"input": 1.00 / 1_000_000, "output": 5.00 / 1_000_000},
+    "gpt-4o-mini": {"input": 0.15 / 1_000_000, "output": 0.60 / 1_000_000},
+    "gemini-2.0-flash": {"input": 0.10 / 1_000_000, "output": 0.40 / 1_000_000},
+}
 
 ENRICH_SKILL_PROMPT = """Tu es un expert en pédagogie et apprentissage.
 Génère une description enrichie pour une compétence, en HTML simple (h3, p, ul/li uniquement).
@@ -86,7 +112,7 @@ def _validate_tree_structure(data: dict) -> dict:
 
 async def _call_anthropic(
     api_key: str, prompt: str, system_prompt: str = SYSTEM_PROMPT, max_tokens: int = 4096, json_mode: bool = False
-) -> str:
+) -> LLMResult:
     """Call Anthropic API."""
     import anthropic
 
@@ -97,12 +123,18 @@ async def _call_anthropic(
         system=system_prompt,
         messages=[{"role": "user", "content": prompt}],
     )
-    return message.content[0].text
+    return LLMResult(
+        text=message.content[0].text,
+        input_tokens=message.usage.input_tokens,
+        output_tokens=message.usage.output_tokens,
+        model="claude-haiku-4-5-20251001",
+        provider="anthropic",
+    )
 
 
 async def _call_google(
     api_key: str, prompt: str, system_prompt: str = SYSTEM_PROMPT, max_tokens: int = 4096, json_mode: bool = False
-) -> str:
+) -> LLMResult:
     """Call Google Gemini API."""
     from google import genai
 
@@ -115,12 +147,19 @@ async def _call_google(
         contents=prompt,
         config=config,
     )
-    return response.text
+    usage = response.usage_metadata
+    return LLMResult(
+        text=response.text,
+        input_tokens=usage.prompt_token_count if usage else 0,
+        output_tokens=usage.candidates_token_count if usage else 0,
+        model="gemini-2.0-flash",
+        provider="google",
+    )
 
 
 async def _call_openai(
     api_key: str, prompt: str, system_prompt: str = SYSTEM_PROMPT, max_tokens: int = 4096, json_mode: bool = False
-) -> str:
+) -> LLMResult:
     """Call OpenAI API."""
     from openai import AsyncOpenAI
 
@@ -136,7 +175,14 @@ async def _call_openai(
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
     response = await client.chat.completions.create(**kwargs)
-    return response.choices[0].message.content or ""
+    usage = response.usage
+    return LLMResult(
+        text=response.choices[0].message.content or "",
+        input_tokens=usage.prompt_tokens if usage else 0,
+        output_tokens=usage.completion_tokens if usage else 0,
+        model="gpt-4o-mini",
+        provider="openai",
+    )
 
 
 async def generate_skill_tree(db: AsyncSession, user_id: int, prompt: str, provider: str | None = None) -> dict:
@@ -159,14 +205,9 @@ async def generate_skill_tree(db: AsyncSession, user_id: int, prompt: str, provi
         )
 
     try:
-        if provider == "anthropic":
-            raw_response = await _call_anthropic(api_key, prompt, json_mode=True)
-        elif provider == "openai":
-            raw_response = await _call_openai(api_key, prompt, json_mode=True)
-        elif provider == "google":
-            raw_response = await _call_google(api_key, prompt, json_mode=True)
-        else:
-            raise HTTPException(status_code=400, detail=f"Provider inconnu: {provider}")
+        result = await _call_provider(
+            provider, api_key, prompt, SYSTEM_PROMPT, max_tokens=4096, json_mode=True, endpoint="generate-tree"
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -177,7 +218,7 @@ async def generate_skill_tree(db: AsyncSession, user_id: int, prompt: str, provi
         )
 
     try:
-        tree_data = _extract_json(raw_response)
+        tree_data = _extract_json(result.text)
         tree_data = _validate_tree_structure(tree_data)
     except (json.JSONDecodeError, ValueError) as e:
         logger.error(f"AI response parse error: {e}")
@@ -190,17 +231,107 @@ async def generate_skill_tree(db: AsyncSession, user_id: int, prompt: str, provi
 
 
 async def _call_provider(
-    provider: str, api_key: str, prompt: str, system_prompt: str, max_tokens: int = 2048, json_mode: bool = False
-) -> str:
-    """Route to the correct provider call."""
-    if provider == "anthropic":
-        return await _call_anthropic(api_key, prompt, system_prompt, max_tokens, json_mode)
-    elif provider == "openai":
-        return await _call_openai(api_key, prompt, system_prompt, max_tokens, json_mode)
-    elif provider == "google":
-        return await _call_google(api_key, prompt, system_prompt, max_tokens, json_mode)
-    else:
-        raise HTTPException(status_code=400, detail=f"Provider inconnu: {provider}")
+    provider: str,
+    api_key: str,
+    prompt: str,
+    system_prompt: str,
+    max_tokens: int = 2048,
+    json_mode: bool = False,
+    endpoint: str = "unknown",
+) -> LLMResult:
+    """Route to the correct provider call with full observability."""
+    model_map = {
+        "anthropic": "claude-haiku-4-5-20251001",
+        "openai": "gpt-4o-mini",
+        "google": "gemini-2.0-flash",
+    }
+    model = model_map.get(provider, "unknown")
+
+    with tracer.start_as_current_span(
+        "llm_call",
+        attributes={
+            "llm.provider": provider,
+            "llm.model": model,
+            "llm.endpoint": endpoint,
+            "llm.max_tokens": max_tokens,
+        },
+    ) as span:
+        start = time.perf_counter()
+        try:
+            if provider == "anthropic":
+                result = await _call_anthropic(api_key, prompt, system_prompt, max_tokens, json_mode)
+            elif provider == "openai":
+                result = await _call_openai(api_key, prompt, system_prompt, max_tokens, json_mode)
+            elif provider == "google":
+                result = await _call_google(api_key, prompt, system_prompt, max_tokens, json_mode)
+            else:
+                raise HTTPException(status_code=400, detail=f"Provider inconnu: {provider}")
+
+            duration = time.perf_counter() - start
+
+            # Prometheus metrics
+            llm_requests_total.labels(provider=provider, model=model, endpoint=endpoint, status="success").inc()
+            llm_tokens_total.labels(provider=provider, model=model, endpoint=endpoint, direction="input").inc(
+                result.input_tokens
+            )
+            llm_tokens_total.labels(provider=provider, model=model, endpoint=endpoint, direction="output").inc(
+                result.output_tokens
+            )
+            llm_request_duration_seconds.labels(provider=provider, model=model, endpoint=endpoint).observe(duration)
+
+            rates = COST_PER_TOKEN.get(model, {"input": 0, "output": 0})
+            cost = (result.input_tokens * rates["input"]) + (result.output_tokens * rates["output"])
+            llm_estimated_cost_dollars.labels(provider=provider, model=model, endpoint=endpoint).inc(cost)
+
+            # OpenTelemetry span attributes
+            span.set_attribute("llm.input_tokens", result.input_tokens)
+            span.set_attribute("llm.output_tokens", result.output_tokens)
+            span.set_attribute("llm.duration_seconds", round(duration, 3))
+            span.set_attribute("llm.estimated_cost_usd", round(cost, 6))
+            span.set_attribute("llm.status", "success")
+
+            # Structured log
+            logger.info(
+                "llm_call",
+                extra={
+                    "event": "llm_call",
+                    "provider": provider,
+                    "model": model,
+                    "endpoint": endpoint,
+                    "input_tokens": result.input_tokens,
+                    "output_tokens": result.output_tokens,
+                    "total_tokens": result.input_tokens + result.output_tokens,
+                    "duration_seconds": round(duration, 3),
+                    "estimated_cost_usd": round(cost, 6),
+                    "status": "success",
+                },
+            )
+
+            return result
+
+        except HTTPException:
+            raise
+        except Exception as exc:
+            duration = time.perf_counter() - start
+            llm_requests_total.labels(provider=provider, model=model, endpoint=endpoint, status="error").inc()
+            llm_request_duration_seconds.labels(provider=provider, model=model, endpoint=endpoint).observe(duration)
+            span.set_attribute("llm.status", "error")
+            span.set_attribute("llm.error", str(exc))
+            span.record_exception(exc)
+
+            logger.error(
+                "llm_call_error",
+                extra={
+                    "event": "llm_call_error",
+                    "provider": provider,
+                    "model": model,
+                    "endpoint": endpoint,
+                    "duration_seconds": round(duration, 3),
+                    "error": str(exc),
+                    "status": "error",
+                },
+            )
+            raise
 
 
 async def enrich_skill(
@@ -238,7 +369,9 @@ async def enrich_skill(
         prompt += f"\nDescription actuelle de la compétence : {current_description}"
 
     try:
-        html = await _call_provider(provider, api_key, prompt, ENRICH_SKILL_PROMPT, max_tokens=2048)
+        result = await _call_provider(
+            provider, api_key, prompt, ENRICH_SKILL_PROMPT, max_tokens=2048, endpoint="enrich-skill"
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -248,4 +381,4 @@ async def enrich_skill(
             detail=f"Erreur lors de l'appel à {provider}: {str(e)}",
         )
 
-    return html.strip()
+    return result.text.strip()
