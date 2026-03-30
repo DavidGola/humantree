@@ -3,8 +3,8 @@ import os
 # Doit être AVANT l'import de app.main pour désactiver le tracing
 os.environ["ENVIRONMENT"] = "test"
 
-import sqlalchemy as sa
 import pytest_asyncio
+import sqlalchemy as sa
 from dotenv import load_dotenv
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine

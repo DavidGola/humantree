@@ -5,18 +5,19 @@ Revises: 15f420886d94
 Create Date: 2026-03-30 10:09:00.883804
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 from pgvector.sqlalchemy import Vector
 from sqlalchemy.dialects.postgresql import TSVECTOR
 
+from alembic import op
+
 # revision identifiers, used by Alembic.
 revision: str = '1f43b41bf5b1'
-down_revision: Union[str, Sequence[str], None] = '15f420886d94'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = '15f420886d94'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

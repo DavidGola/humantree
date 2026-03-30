@@ -106,7 +106,11 @@ class TestEvaluateTree:
 
     @pytest.mark.asyncio
     async def test_provider_error_returns_skip(self):
-        with patch("app.services.agent.evaluator._call_provider", new_callable=AsyncMock, side_effect=RuntimeError("API down")):
+        with patch(
+            "app.services.agent.evaluator._call_provider",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("API down"),
+        ):
             score = await evaluate_tree(VALID_TREE, "anthropic", "fake-key")
         assert score.overall == 1.0
         assert "failed" in score.feedback.lower()
@@ -143,23 +147,33 @@ class TestImproveTree:
     @pytest.mark.asyncio
     async def test_invalid_json_raises(self):
         mock_result = _make_llm_result("not valid json")
-        with patch("app.services.agent.improver._call_provider", new_callable=AsyncMock, return_value=mock_result):
-            with pytest.raises(ValueError):
-                await improve_tree(VALID_TREE, "feedback", "prompt", "anthropic", "fake-key")
+        with (
+            patch("app.services.agent.improver._call_provider", new_callable=AsyncMock, return_value=mock_result),
+            pytest.raises(ValueError),
+        ):
+            await improve_tree(VALID_TREE, "feedback", "prompt", "anthropic", "fake-key")
 
     @pytest.mark.asyncio
     async def test_invalid_structure_raises(self):
         bad_tree = {"name": "Bad", "skills": []}  # No skills
         mock_result = _make_llm_result(json.dumps(bad_tree))
-        with patch("app.services.agent.improver._call_provider", new_callable=AsyncMock, return_value=mock_result):
-            with pytest.raises(ValueError):
-                await improve_tree(VALID_TREE, "feedback", "prompt", "anthropic", "fake-key")
+        with (
+            patch("app.services.agent.improver._call_provider", new_callable=AsyncMock, return_value=mock_result),
+            pytest.raises(ValueError),
+        ):
+            await improve_tree(VALID_TREE, "feedback", "prompt", "anthropic", "fake-key")
 
     @pytest.mark.asyncio
     async def test_provider_error_propagates(self):
-        with patch("app.services.agent.improver._call_provider", new_callable=AsyncMock, side_effect=RuntimeError("API down")):
-            with pytest.raises(RuntimeError):
-                await improve_tree(VALID_TREE, "feedback", "prompt", "anthropic", "fake-key")
+        with (
+            patch(
+                "app.services.agent.improver._call_provider",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("API down"),
+            ),
+            pytest.raises(RuntimeError),
+        ):
+            await improve_tree(VALID_TREE, "feedback", "prompt", "anthropic", "fake-key")
 
 
 # ============================================================
