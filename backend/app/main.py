@@ -21,6 +21,7 @@ from app.limiter import limiter
 from app.metrics import counter_rate_limit_exceeded, db_pool_checked_out, instrumentator
 from app.routers.ai import router as ai_router
 from app.routers.api_keys import router as api_keys_router
+from app.routers.search import router as search_router
 from app.routers.skill_trees import router as skill_trees_router
 from app.routers.user import router as user_router
 from app.tracing import setup_tracing
@@ -165,6 +166,7 @@ app.include_router(skill_trees_router)
 app.include_router(api_keys_router)
 app.include_router(user_router)
 app.include_router(ai_router)
+app.include_router(search_router)
 
 instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 

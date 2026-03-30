@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { Skill } from "../types/skillTree";
 import type { UserDetailSkill } from "../types/user";
 import { ReactFlow, Handle, Position } from "@xyflow/react";
@@ -204,7 +203,6 @@ function NoCheckSkillNode({ data }: { data: NoCheckSkillNodeData }) {
 function SkillTreeDetailPage() {
   const { loading, tree, selection, editing, skills, edges, deleteTree, unsavedGuard, linkedTrees } = useSkillTreeDetail();
   const { favoriteTrees, handleFavorite } = useFavorites();
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   if (loading.isLoading) {
     return (
@@ -453,25 +451,12 @@ function SkillTreeDetailPage() {
                     Modifications non sauvegardées
                   </span>
                 )}
-                {/* More menu for danger actions */}
-                <div className="relative">
-                  <button
-                    onClick={() => setMoreMenuOpen(!moreMenuOpen)}
-                    className="px-2 py-1.5 text-sm rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-                  >
-                    ...
-                  </button>
-                  {moreMenuOpen && (
-                    <div className="absolute top-full left-0 mt-1 w-44 rounded-lg surface-strong backdrop-blur-md py-1 z-50">
-                      <button
-                        onClick={() => { deleteTree.setIsModalDeleteOpen(true); setMoreMenuOpen(false); }}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                      >
-                        Supprimer l'arbre
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <button
+                  onClick={() => deleteTree.setIsModalDeleteOpen(true)}
+                  className="px-3 py-1.5 text-sm font-display font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors duration-200"
+                >
+                  Supprimer
+                </button>
               </>
             )}
           </div>

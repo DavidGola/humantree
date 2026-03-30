@@ -3,6 +3,7 @@ import os
 # Doit être AVANT l'import de app.main pour désactiver le tracing
 os.environ["ENVIRONMENT"] = "test"
 
+import sqlalchemy as sa
 import pytest_asyncio
 from dotenv import load_dotenv
 from httpx import ASGITransport, AsyncClient
@@ -26,6 +27,7 @@ TestSessionLocal = async_sessionmaker(engine_test)
 @pytest_asyncio.fixture
 async def setup_db():
     async with engine_test.begin() as conn:
+        await conn.execute(sa.text("CREATE EXTENSION IF NOT EXISTS vector"))
         await conn.run_sync(BaseModel.metadata.create_all)
     yield
     async with engine_test.begin() as conn:

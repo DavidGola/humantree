@@ -22,6 +22,11 @@ AGENT_QUALITY_THRESHOLD = 0.7
 AGENT_MAX_ATTEMPTS = 2
 AGENT_TIMEOUT_BUDGET = 90.0
 
+# --- Embeddings ---
+EMBEDDING_MODEL = "intfloat/multilingual-e5-small"
+EMBEDDING_DIMENSIONS = 384
+EMBEDDING_BATCH_SIZE = 50  # pour le backfill
+
 # --- Auth / Cookies ---
 ACCESS_TOKEN_MAX_AGE = 900  # 15 minutes
 REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60  # 7 jours

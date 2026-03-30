@@ -1,13 +1,16 @@
 # /backend/app/services/skill_tree_service.py
 
+import asyncio
 import logging
+import os
 
 from fastapi import HTTPException
-from sqlalchemy import delete, select, text
+from sqlalchemy import delete, func, literal_column, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.database import async_session
 from app.models.skill import Skill
 from app.models.skill_tree import SkillTree
 from app.models.tag import SkillTreeTag, Tag
@@ -23,6 +26,30 @@ from app.schemas.skill_tree import (
 from app.services.skill_service import delete_skill, update_skill
 
 logger = logging.getLogger(__name__)
+
+
+async def _safe_embed(tree_id: int) -> None:
+    """Fire-and-forget embedding generation in a separate session."""
+    if os.environ.get("ENVIRONMENT") == "test":
+        return
+    try:
+        from app.services.embedding_service import embed_skill_tree
+
+        async with async_session() as session:
+            await embed_skill_tree(session, tree_id)
+    except Exception as e:
+        logger.warning(f"Embedding generation failed for tree {tree_id}: {e}")
+
+
+def _build_search_vector(tree: SkillTree):
+    """Build the tsvector expression for a skill tree (does NOT commit)."""
+    return func.setweight(
+        func.to_tsvector("french", func.coalesce(tree.name, "")), literal_column("'A'")
+    ).op("||")(
+        func.setweight(
+            func.to_tsvector("french", func.coalesce(tree.description, "")), literal_column("'B'")
+        )
+    )
 
 
 async def _sync_tags(db: AsyncSession, skill_tree_id: int, tag_names: list[str]) -> None:
@@ -201,8 +228,14 @@ async def create_skill_tree(db: AsyncSession, data: SkillTreeCreateSchema) -> Sk
     if data.tags:
         await _sync_tags(db, skill_tree_orm.id, data.tags)
 
+    # Set search vector before commit
+    skill_tree_orm.search_vector = _build_search_vector(skill_tree_orm)
+
     await db.commit()
     await db.refresh(skill_tree_orm)
+
+    # Fire-and-forget embedding
+    asyncio.create_task(_safe_embed(skill_tree_orm.id))
 
     return SkillTreeSimpleSchema.model_validate(skill_tree_orm)
 
@@ -240,6 +273,9 @@ async def update_skill_tree(
     if data.tags is not None:
         await _sync_tags(db, skill_tree_id, data.tags)
 
+    # Set search vector before commit
+    skill_tree.search_vector = _build_search_vector(skill_tree)
+
     try:
         await db.commit()
     except IntegrityError as e:
@@ -251,6 +287,10 @@ async def update_skill_tree(
         raise HTTPException(status_code=400, detail="Erreur d'intégrité des données")
 
     await db.refresh(skill_tree)
+
+    # Fire-and-forget embedding
+    asyncio.create_task(_safe_embed(skill_tree_id))
+
     return SkillTreeSimpleSchema.model_validate(skill_tree)
 
 
@@ -350,6 +390,9 @@ async def save_skill_tree(db: AsyncSession, skill_tree: SkillTreeSaveSchema) -> 
             )
         logger.error("IntegrityError inattendue dans save_skill_tree: %s", e.orig)
         raise HTTPException(status_code=400, detail="Erreur d'intégrité des données")
+
+    # Fire-and-forget embedding (search_vector updated inside embed_skill_tree)
+    asyncio.create_task(_safe_embed(skill_tree.id))
 
     return True
 

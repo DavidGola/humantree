@@ -76,3 +76,29 @@ agent_fallback_total = Counter(
     "Number of times provider fallback was triggered",
     ["primary_provider", "fallback_provider"],
 )
+
+# --- Embedding / Search metrics ---
+
+embedding_requests_total = Counter(
+    "embedding_requests_total",
+    "Total embedding generation calls",
+    ["status"],
+)
+
+embedding_duration_seconds = Histogram(
+    "embedding_duration_seconds",
+    "Embedding generation duration in seconds",
+    buckets=(0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0),
+)
+
+search_requests_total = Counter(
+    "search_requests_total",
+    "Total semantic search requests",
+    ["status"],
+)
+
+search_duration_seconds = Histogram(
+    "search_duration_seconds",
+    "Search request duration in seconds",
+    buckets=(0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0),
+)

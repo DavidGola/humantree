@@ -1,0 +1,172 @@
+import logging
+import time
+
+from opentelemetry import trace
+from sqlalchemy import func, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.metrics import search_duration_seconds, search_requests_total
+from app.models.skill_tree import SkillTree
+from app.schemas.search import SearchResultSchema, SearchResultsSchema
+from app.services.embedding_service import generate_embedding
+
+logger = logging.getLogger(__name__)
+tracer = trace.get_tracer("humantree.search")
+
+
+async def semantic_search(
+    db: AsyncSession,
+    query: str,
+    limit: int = 20,
+    offset: int = 0,
+) -> SearchResultsSchema:
+    """Hybrid search: semantic (pgvector) + full-text (tsvector).
+
+    Combines cosine similarity from embeddings with PostgreSQL full-text search
+    for robust results even when embeddings are unavailable.
+    """
+    start = time.perf_counter()
+
+    with tracer.start_as_current_span(
+        "semantic_search",
+        attributes={"search.query_length": len(query), "search.limit": limit},
+    ) as span:
+        results_by_id: dict[int, dict] = {}
+
+        # 1. Semantic search via pgvector
+        try:
+            query_vector = await generate_embedding(query, is_query=True)
+            # Only return results with cosine similarity > 0.82
+            min_similarity = 0.82
+            semantic_stmt = (
+                select(
+                    SkillTree.id,
+                    SkillTree.name,
+                    SkillTree.description,
+                    SkillTree.creator_username,
+                    SkillTree.created_at,
+                    (1 - SkillTree.embedding.cosine_distance(query_vector)).label("semantic_score"),
+                )
+                .where(SkillTree.embedding.isnot(None))
+                .where(SkillTree.embedding.cosine_distance(query_vector) < (1 - min_similarity))
+                .order_by(SkillTree.embedding.cosine_distance(query_vector))
+                .limit(limit + offset)
+            )
+            result = await db.execute(semantic_stmt)
+            for row in result.all():
+                results_by_id[row.id] = {
+                    "id": row.id,
+                    "name": row.name,
+                    "description": row.description,
+                    "creator_username": row.creator_username,
+                    "created_at": row.created_at,
+                    "semantic_score": max(0.0, float(row.semantic_score)),
+                    "text_score": 0.0,
+                }
+            span.set_attribute("search.semantic_results", len(results_by_id))
+        except NotImplementedError:
+            logger.info("Semantic search skipped: embedding model not configured")
+            span.set_attribute("search.semantic_results", 0)
+        except Exception as e:
+            logger.warning(f"Semantic search failed, falling back to text-only: {e}")
+            span.set_attribute("search.semantic_results", 0)
+
+        # 2. Full-text search via tsvector
+        ts_query = func.plainto_tsquery("french", query)
+        fts_stmt = (
+            select(
+                SkillTree.id,
+                SkillTree.name,
+                SkillTree.description,
+                SkillTree.creator_username,
+                SkillTree.created_at,
+                func.ts_rank(SkillTree.search_vector, ts_query).label("text_score"),
+            )
+            .where(SkillTree.search_vector.op("@@")(ts_query))
+            .order_by(text("text_score DESC"))
+            .limit(limit + offset)
+        )
+        result = await db.execute(fts_stmt)
+        for row in result.all():
+            if row.id in results_by_id:
+                results_by_id[row.id]["text_score"] = float(row.text_score)
+            else:
+                results_by_id[row.id] = {
+                    "id": row.id,
+                    "name": row.name,
+                    "description": row.description,
+                    "creator_username": row.creator_username,
+                    "created_at": row.created_at,
+                    "semantic_score": 0.0,
+                    "text_score": float(row.text_score),
+                }
+        span.set_attribute("search.fts_results", len(results_by_id))
+
+        # 3. Compute hybrid score and normalize
+        max_text_score = max((r["text_score"] for r in results_by_id.values()), default=1.0) or 1.0
+        for r in results_by_id.values():
+            normalized_text = r["text_score"] / max_text_score
+            r["score"] = round(0.7 * r["semantic_score"] + 0.3 * normalized_text, 4)
+
+        # 4. Filter: keep FTS matches (always relevant) + high-score semantic-only results
+        sorted_results = sorted(
+            (r for r in results_by_id.values() if r["text_score"] > 0 or r["semantic_score"] >= 0.82),
+            key=lambda r: r["score"],
+            reverse=True,
+        )
+        paginated = sorted_results[offset : offset + limit]
+
+        # 5. Load tags for results
+        if paginated:
+            tree_ids = [r["id"] for r in paginated]
+            tags_stmt = (
+                select(SkillTree)
+                .where(SkillTree.id.in_(tree_ids))
+                .options(selectinload(SkillTree.tags))
+            )
+            tag_result = await db.execute(tags_stmt)
+            tags_by_id: dict[int, list[str]] = {}
+            for tree in tag_result.scalars().all():
+                tags_by_id[tree.id] = [t.name for t in tree.tags]
+        else:
+            tags_by_id = {}
+
+        # 6. Build response
+        search_results = [
+            SearchResultSchema(
+                id=r["id"],
+                name=r["name"],
+                description=r["description"],
+                creator_username=r["creator_username"],
+                created_at=r["created_at"],
+                tags=tags_by_id.get(r["id"], []),
+                score=r["score"],
+            )
+            for r in paginated
+        ]
+
+        duration = time.perf_counter() - start
+        search_requests_total.labels(status="success").inc()
+        search_duration_seconds.observe(duration)
+
+        span.set_attribute("search.total_results", len(sorted_results))
+        span.set_attribute("search.returned_results", len(search_results))
+        span.set_attribute("search.duration_seconds", round(duration, 3))
+
+        logger.info(
+            "search",
+            extra={
+                "event": "search",
+                "query": query,
+                "total_results": len(sorted_results),
+                "returned_results": len(search_results),
+                "duration_seconds": round(duration, 3),
+            },
+        )
+
+        return SearchResultsSchema(
+            results=search_results,
+            total=len(sorted_results),
+            query=query,
+        )
