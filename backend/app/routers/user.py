@@ -31,6 +31,7 @@ from app.schemas.user import (
     UserSkillsCheckedSchema,
     UserUpdateSchema,
 )
+from app.constants import ACCESS_TOKEN_MAX_AGE, COOKIE_SAMESITE, REFRESH_TOKEN_MAX_AGE
 from app.services.auth_service import (
     create_jwt_token,
     get_current_user,
@@ -120,16 +121,16 @@ async def login(
         value=jwt_token.access_token,
         httponly=True,
         secure=True,
-        samesite="Strict",
-        max_age=900,  # 15 minutes
+        samesite=COOKIE_SAMESITE,
+        max_age=ACCESS_TOKEN_MAX_AGE,
     )
     response.set_cookie(
         key="refresh_token",
         value=jwt_token.refresh_token,
         httponly=True,
         secure=True,
-        samesite="Strict",
-        max_age=7 * 24 * 60 * 60,  # 7 jours
+        samesite=COOKIE_SAMESITE,
+        max_age=REFRESH_TOKEN_MAX_AGE,
     )
     return response
 
@@ -148,8 +149,8 @@ async def logout(
         await db.execute(sa_delete(Token).where(Token.token == refresh_token))
         await db.commit()
     response = JSONResponse(content={"message": "Logged out"})
-    response.delete_cookie("access_token", httponly=True, secure=True, samesite="strict")
-    response.delete_cookie("refresh_token", httponly=True, secure=True, samesite="strict")
+    response.delete_cookie("access_token", httponly=True, secure=True, samesite=COOKIE_SAMESITE)
+    response.delete_cookie("refresh_token", httponly=True, secure=True, samesite=COOKIE_SAMESITE)
     return response
 
 
@@ -181,16 +182,16 @@ async def refresh_token(
         value=new_refresh_token.access_token,
         httponly=True,
         secure=True,
-        samesite="Strict",
-        max_age=900,  # 15 minutes
+        samesite=COOKIE_SAMESITE,
+        max_age=ACCESS_TOKEN_MAX_AGE,
     )
     response.set_cookie(
         key="refresh_token",
         value=new_refresh_token.refresh_token,
         httponly=True,
         secure=True,
-        samesite="Strict",
-        max_age=7 * 24 * 60 * 60,  # 7 jours
+        samesite=COOKIE_SAMESITE,
+        max_age=REFRESH_TOKEN_MAX_AGE,
     )
     return response
 

@@ -5,16 +5,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user_api_key import UserApiKey
 from app.schemas.api_key import ApiKeyResponseSchema
+from app.constants import MODEL_ANTHROPIC, PROVIDER_ANTHROPIC, PROVIDER_GOOGLE, PROVIDER_OPENAI
 from app.services.encryption_service import decrypt, encrypt
 
-VALID_PROVIDERS = ("anthropic", "openai", "google")
+VALID_PROVIDERS = (PROVIDER_ANTHROPIC, PROVIDER_OPENAI, PROVIDER_GOOGLE)
 
 
 async def validate_api_key(provider: str, key: str) -> bool:
     """Test léger de validité d'une clé API auprès du provider."""
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            if provider == "anthropic":
+            if provider == PROVIDER_ANTHROPIC:
                 resp = await client.post(
                     "https://api.anthropic.com/v1/messages",
                     headers={
@@ -23,20 +24,20 @@ async def validate_api_key(provider: str, key: str) -> bool:
                         "content-type": "application/json",
                     },
                     json={
-                        "model": "claude-haiku-4-5-20251001",
+                        "model": MODEL_ANTHROPIC,
                         "max_tokens": 1,
                         "messages": [{"role": "user", "content": "hi"}],
                     },
                 )
                 # 200 = valid, 401 = invalid key
                 return resp.status_code != 401
-            elif provider == "openai":
+            elif provider == PROVIDER_OPENAI:
                 resp = await client.get(
                     "https://api.openai.com/v1/models",
                     headers={"Authorization": f"Bearer {key}"},
                 )
                 return resp.status_code != 401
-            elif provider == "google":
+            elif provider == PROVIDER_GOOGLE:
                 resp = await client.get(
                     "https://generativelanguage.googleapis.com/v1beta/models",
                     params={"key": key},

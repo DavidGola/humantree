@@ -100,8 +100,8 @@ frontend/
 cd backend
 
 # Creer et activer l'environnement virtuel
-python -m venv venv
-source venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate
 
 # Installer les dependances
 pip install -r requirements.txt
