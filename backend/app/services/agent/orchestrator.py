@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from opentelemetry import trace
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.constants import MAX_TOKENS_GENERATE
 from app.metrics import (
     agent_attempts_total,
     agent_fallback_total,
@@ -29,7 +30,6 @@ from app.services.ai_service import (
     _validate_tree_structure,
 )
 from app.services.api_key_service import get_api_key, list_api_keys
-from app.constants import MAX_TOKENS_GENERATE
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer("humantree.agent")
@@ -295,9 +295,7 @@ async def _step_evaluate(
             duration_seconds=round(time.perf_counter() - step_start, 3), success=True,
         ))
 
-        if quality.overall >= config.quality_threshold:
-            state.phase = AgentPhase.DONE
-        elif state.attempts >= config.max_attempts:
+        if quality.overall >= config.quality_threshold or state.attempts >= config.max_attempts:
             state.phase = AgentPhase.DONE
         else:
             state.phase = AgentPhase.IMPROVE

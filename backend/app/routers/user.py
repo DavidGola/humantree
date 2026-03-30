@@ -15,6 +15,8 @@ from sqlalchemy import func, select
 # SQLAlchemy
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.constants import ACCESS_TOKEN_MAX_AGE, COOKIE_SAMESITE, REFRESH_TOKEN_MAX_AGE
+
 # Database
 from app.database import get_db
 from app.limiter import limiter
@@ -31,7 +33,6 @@ from app.schemas.user import (
     UserSkillsCheckedSchema,
     UserUpdateSchema,
 )
-from app.constants import ACCESS_TOKEN_MAX_AGE, COOKIE_SAMESITE, REFRESH_TOKEN_MAX_AGE
 from app.services.auth_service import (
     create_jwt_token,
     get_current_user,

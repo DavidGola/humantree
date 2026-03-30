@@ -1,10 +1,10 @@
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 
 from app.constants import AGENT_MAX_ATTEMPTS, AGENT_QUALITY_THRESHOLD, AGENT_TIMEOUT_BUDGET
 
 
-class AgentPhase(str, Enum):
+class AgentPhase(StrEnum):
     GENERATE = "generate"
     EVALUATE = "evaluate"
     IMPROVE = "improve"

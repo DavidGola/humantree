@@ -12,7 +12,6 @@ from app.services.agent.orchestrator import _call_with_fallback, run_tree_agent
 from app.services.agent.state import AgentConfig
 from app.services.ai_service import LLMResult
 
-
 # ============================================================
 # Fixtures
 # ============================================================

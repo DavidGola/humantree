@@ -32,7 +32,8 @@ Critères (score de 0.0 à 1.0) :
 - Les tags sont pertinents et en nombre suffisant (3-10)
 - La description de l'arbre résume bien le contenu
 
-**feedback** : 1-3 phrases concises identifiant les problèmes principaux à corriger. Si tout est bon, dis "Aucun problème identifié."
+**feedback** : 1-3 phrases concises identifiant les problèmes principaux à corriger.
+Si tout est bon, dis "Aucun problème identifié."
 
 Sois exigeant mais juste. Un arbre "correct" devrait scorer entre 0.6 et 0.8. Réserve 0.9+ aux arbres exceptionnels."""
 
