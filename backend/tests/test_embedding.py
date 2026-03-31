@@ -20,19 +20,25 @@ class TestBuildEmbeddingText:
             name="Python Backend",
             description="Learn Python backend development",
             tags=["python", "backend"],
-            skill_names=["FastAPI", "SQLAlchemy", "Docker"],
+            skills=[
+                {"name": "FastAPI", "description": "Build APIs"},
+                {"name": "SQLAlchemy", "description": "ORM for Python"},
+                {"name": "Docker", "description": None},
+            ],
         )
         assert "Python Backend" in text
         assert "Learn Python backend development" in text
         assert "Tags: python, backend" in text
-        assert "Skills: FastAPI, SQLAlchemy, Docker" in text
+        assert "FastAPI: Build APIs" in text
+        assert "SQLAlchemy: ORM for Python" in text
+        assert "Docker" in text
 
     def test_minimal_content(self):
         text = build_embedding_text(
             name="Test Tree",
             description=None,
             tags=[],
-            skill_names=[],
+            skills=[],
         )
         assert text == "Test Tree"
 
@@ -41,12 +47,11 @@ class TestBuildEmbeddingText:
             name="Test",
             description=None,
             tags=["tag1"],
-            skill_names=["Skill1"],
+            skills=[{"name": "Skill1", "description": "Desc1"}],
         )
         assert "Test" in text
         assert "Tags: tag1" in text
-        assert "Skills: Skill1" in text
-        # No empty line for missing description
+        assert "Skill1: Desc1" in text
         lines = text.split("\n")
         assert lines[0] == "Test"
 
@@ -55,7 +60,7 @@ class TestBuildEmbeddingText:
             name="Name",
             description="Desc",
             tags=[],
-            skill_names=[],
+            skills=[],
         )
         assert "Tags:" not in text
         assert "Skills:" not in text
@@ -65,7 +70,7 @@ class TestBuildEmbeddingText:
             name="Développement C++",
             description="Apprendre le C++ avancé",
             tags=["c-plus-plus"],
-            skill_names=["Pointeurs & Références"],
+            skills=[{"name": "Pointeurs & Références", "description": None}],
         )
         assert "Développement C++" in text
         assert "Pointeurs & Références" in text
@@ -118,6 +123,7 @@ class TestEmbedSkillTree:
         mock_tag.name = "python"
         mock_skill = MagicMock()
         mock_skill.name = "FastAPI"
+        mock_skill.description = "Build APIs with Python"
         mock_tree = MagicMock()
         mock_tree.id = 1
         mock_tree.name = "Python Backend"
@@ -177,8 +183,10 @@ class TestEmbedSkillTree:
         mock_tag.name = "web"
         mock_skill1 = MagicMock()
         mock_skill1.name = "HTML"
+        mock_skill1.description = "Structure web pages"
         mock_skill2 = MagicMock()
         mock_skill2.name = "CSS"
+        mock_skill2.description = "Style web pages"
         mock_tree = MagicMock()
         mock_tree.id = 1
         mock_tree.name = "Web Dev"

@@ -1,12 +1,12 @@
-"""Backfill embeddings for all skill trees that don't have one yet.
+"""Backfill embeddings for skill trees.
 
 Usage:
     cd backend
-    python -m scripts.backfill_embeddings
-
-Idempotent: only processes trees where embedding IS NULL.
+    python -m scripts.backfill_embeddings          # only trees without embedding
+    python -m scripts.backfill_embeddings --force   # re-embed ALL trees
 """
 
+import argparse
 import asyncio
 import logging
 import os
@@ -30,7 +30,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 
-async def backfill():
+async def backfill(*, force: bool = False):
     database_url = os.getenv("POSTGRES_DATABASE_URL_DEV") or os.getenv("POSTGRES_DATABASE_URL")
     if not database_url:
         logger.error("No database URL configured")
@@ -40,10 +40,13 @@ async def backfill():
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
     async with session_factory() as db:
-        # Count trees without embeddings
-        count_stmt = select(func.count()).select_from(SkillTree).where(SkillTree.embedding.is_(None))
-        total = (await db.execute(count_stmt)).scalar() or 0
-        logger.info(f"Found {total} trees without embeddings")
+        # Count trees to process
+        base_stmt = select(func.count()).select_from(SkillTree)
+        if not force:
+            base_stmt = base_stmt.where(SkillTree.embedding.is_(None))
+        total = (await db.execute(base_stmt)).scalar() or 0
+        mode = "ALL (force)" if force else "missing only"
+        logger.info(f"Found {total} trees to embed ({mode})")
 
         if total == 0:
             logger.info("Nothing to backfill")
@@ -66,7 +69,10 @@ async def backfill():
         offset = 0
 
         while offset < total:
-            stmt = select(SkillTree.id).where(SkillTree.embedding.is_(None)).limit(EMBEDDING_BATCH_SIZE)
+            stmt = select(SkillTree.id)
+            if not force:
+                stmt = stmt.where(SkillTree.embedding.is_(None))
+            stmt = stmt.limit(EMBEDDING_BATCH_SIZE).offset(offset)
             result = await db.execute(stmt)
             tree_ids = [row.id for row in result.all()]
 
@@ -96,4 +102,7 @@ async def backfill():
 
 
 if __name__ == "__main__":
-    asyncio.run(backfill())
+    parser = argparse.ArgumentParser(description="Backfill skill tree embeddings")
+    parser.add_argument("--force", action="store_true", help="Re-embed ALL trees (not just missing)")
+    args = parser.parse_args()
+    asyncio.run(backfill(force=args.force))

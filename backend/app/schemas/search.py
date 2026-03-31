@@ -11,6 +11,8 @@ class SearchResultSchema(BaseModel):
     created_at: datetime
     tags: list[str]
     score: float
+    semantic_score: float
+    text_score: float
 
 
 class SearchResultsSchema(BaseModel):

@@ -177,9 +177,13 @@ class TestSearchResultSchema:
             created_at=datetime(2026, 1, 1),
             tags=["python"],
             score=0.85,
+            semantic_score=0.9,
+            text_score=0.7,
         )
         assert schema.id == 1
         assert schema.score == 0.85
+        assert schema.semantic_score == 0.9
+        assert schema.text_score == 0.7
 
     def test_schema_null_description(self):
         schema = SearchResultSchema(
@@ -190,5 +194,7 @@ class TestSearchResultSchema:
             created_at=datetime(2026, 1, 1),
             tags=[],
             score=0.5,
+            semantic_score=0.5,
+            text_score=0.0,
         )
         assert schema.description is None

@@ -15,6 +15,35 @@ logger = logging.getLogger(__name__)
 tracer = trace.get_tracer("humantree.search")
 
 
+def _filter_by_score_gap(
+    rows: list[dict],
+    gap_ratio: float = 0.02,
+) -> list[dict]:
+    """Keep only results above the first significant score gap.
+
+    Scores from small embedding models are compressed (0.78-0.86).
+    A fixed threshold can't distinguish relevant from irrelevant.
+    Instead, we detect where scores drop sharply relative to the top
+    result — that boundary separates the relevant cluster from noise.
+
+    Args:
+        rows: sorted by semantic_score descending.
+        gap_ratio: a gap > top_score * gap_ratio triggers a cut.
+    """
+    if len(rows) <= 1:
+        return rows
+
+    top_score = rows[0]["semantic_score"]
+    min_gap = top_score * gap_ratio
+
+    for i in range(1, len(rows)):
+        gap = rows[i - 1]["semantic_score"] - rows[i]["semantic_score"]
+        if gap > min_gap:
+            return rows[:i]
+
+    return rows
+
+
 async def semantic_search(
     db: AsyncSession,
     query: str,
@@ -37,8 +66,8 @@ async def semantic_search(
         # 1. Semantic search via pgvector
         try:
             query_vector = await generate_embedding(query, is_query=True)
-            # Only return results with cosine similarity > 0.82
-            min_similarity = 0.82
+            # Only return results with cosine similarity > threshold
+            min_similarity = 0.78
             semantic_stmt = (
                 select(
                     SkillTree.id,
@@ -54,8 +83,8 @@ async def semantic_search(
                 .limit(limit + offset)
             )
             result = await db.execute(semantic_stmt)
-            for row in result.all():
-                results_by_id[row.id] = {
+            semantic_rows = [
+                {
                     "id": row.id,
                     "name": row.name,
                     "description": row.description,
@@ -64,7 +93,13 @@ async def semantic_search(
                     "semantic_score": max(0.0, float(row.semantic_score)),
                     "text_score": 0.0,
                 }
-            span.set_attribute("search.semantic_results", len(results_by_id))
+                for row in result.all()
+            ]
+            # Keep only the relevant cluster (cut at first significant score gap)
+            semantic_rows = _filter_by_score_gap(semantic_rows)
+            for r in semantic_rows:
+                results_by_id[r["id"]] = r
+            span.set_attribute("search.semantic_results", len(semantic_rows))
         except NotImplementedError:
             logger.info("Semantic search skipped: embedding model not configured")
             span.set_attribute("search.semantic_results", 0)
@@ -109,9 +144,9 @@ async def semantic_search(
             normalized_text = r["text_score"] / max_text_score
             r["score"] = round(0.7 * r["semantic_score"] + 0.3 * normalized_text, 4)
 
-        # 4. Filter: keep FTS matches (always relevant) + high-score semantic-only results
+        # 4. Sort by hybrid score (gap detection already filtered semantic noise)
         sorted_results = sorted(
-            (r for r in results_by_id.values() if r["text_score"] > 0 or r["semantic_score"] >= 0.82),
+            results_by_id.values(),
             key=lambda r: r["score"],
             reverse=True,
         )
@@ -138,6 +173,8 @@ async def semantic_search(
                 created_at=r["created_at"],
                 tags=tags_by_id.get(r["id"], []),
                 score=r["score"],
+                semantic_score=r["semantic_score"],
+                text_score=r["text_score"],
             )
             for r in paginated
         ]

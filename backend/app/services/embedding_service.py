@@ -22,16 +22,26 @@ def build_embedding_text(
     name: str,
     description: str | None,
     tags: list[str],
-    skill_names: list[str],
+    skills: list[dict[str, str | None]],
 ) -> str:
-    """Build the text to embed for a skill tree."""
+    """Build the text to embed for a skill tree.
+
+    Args:
+        skills: list of {"name": ..., "description": ...} dicts.
+    """
     parts = [name]
     if description:
         parts.append(description)
     if tags:
         parts.append(f"\nTags: {', '.join(tags)}")
-    if skill_names:
-        parts.append(f"\nSkills: {', '.join(skill_names)}")
+    if skills:
+        skill_parts = []
+        for s in skills:
+            if s.get("description"):
+                skill_parts.append(f"{s['name']}: {s['description']}")
+            else:
+                skill_parts.append(s["name"])
+        parts.append(f"\nSkills: {'; '.join(skill_parts)}")
     return "\n".join(parts)
 
 
@@ -79,8 +89,8 @@ async def embed_skill_tree(db: AsyncSession, tree_id: int) -> bool:
 
         # Build text
         tag_names = [t.name for t in tree.tags]
-        skill_names = [s.name for s in tree.skills]
-        text = build_embedding_text(tree.name, tree.description, tag_names, skill_names)
+        skills = [{"name": s.name, "description": s.description} for s in tree.skills]
+        text = build_embedding_text(tree.name, tree.description, tag_names, skills)
 
         # Generate embedding
         start = time.perf_counter()
