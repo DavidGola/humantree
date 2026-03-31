@@ -66,11 +66,7 @@ async def backfill():
         offset = 0
 
         while offset < total:
-            stmt = (
-                select(SkillTree.id)
-                .where(SkillTree.embedding.is_(None))
-                .limit(EMBEDDING_BATCH_SIZE)
-            )
+            stmt = select(SkillTree.id).where(SkillTree.embedding.is_(None)).limit(EMBEDDING_BATCH_SIZE)
             result = await db.execute(stmt)
             tree_ids = [row.id for row in result.all()]
 

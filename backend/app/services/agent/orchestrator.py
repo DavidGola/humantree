@@ -226,10 +226,16 @@ async def _step_generate(
 
     with tracer.start_as_current_span("agent_step.generate", attributes={"agent.step.attempt": state.attempts}):
         try:
+
             async def _gen(prov, key):
                 return await _call_provider(
-                    prov, key, prompt, SYSTEM_PROMPT,
-                    max_tokens=MAX_TOKENS_GENERATE, json_mode=True, endpoint="generate-tree",
+                    prov,
+                    key,
+                    prompt,
+                    SYSTEM_PROMPT,
+                    max_tokens=MAX_TOKENS_GENERATE,
+                    json_mode=True,
+                    endpoint="generate-tree",
                 )
 
             result, used_provider, fallback = await _call_with_fallback(providers, primary, _gen)
@@ -249,20 +255,29 @@ async def _step_generate(
                 state.best_tree = tree_data
 
             state.phase = AgentPhase.EVALUATE
-            state.steps.append(AgentStep(
-                phase="generate", provider=used_provider,
-                duration_seconds=round(time.perf_counter() - step_start, 3),
-                success=True, input_tokens=result.input_tokens, output_tokens=result.output_tokens,
-            ))
+            state.steps.append(
+                AgentStep(
+                    phase="generate",
+                    provider=used_provider,
+                    duration_seconds=round(time.perf_counter() - step_start, 3),
+                    success=True,
+                    input_tokens=result.input_tokens,
+                    output_tokens=result.output_tokens,
+                )
+            )
 
         except HTTPException:
             raise
         except Exception as e:
             logger.error(f"Generate step failed: {e}")
-            state.steps.append(AgentStep(
-                phase="generate", provider=state.provider_used,
-                duration_seconds=round(time.perf_counter() - step_start, 3), success=False,
-            ))
+            state.steps.append(
+                AgentStep(
+                    phase="generate",
+                    provider=state.provider_used,
+                    duration_seconds=round(time.perf_counter() - step_start, 3),
+                    success=False,
+                )
+            )
             if state.attempts >= config.max_attempts:
                 state.phase = AgentPhase.DONE
             else:
@@ -290,10 +305,14 @@ async def _step_evaluate(
 
         root_span.set_attribute("agent.step.quality_score", quality.overall)
 
-        state.steps.append(AgentStep(
-            phase="evaluate", provider=state.provider_used,
-            duration_seconds=round(time.perf_counter() - step_start, 3), success=True,
-        ))
+        state.steps.append(
+            AgentStep(
+                phase="evaluate",
+                provider=state.provider_used,
+                duration_seconds=round(time.perf_counter() - step_start, 3),
+                success=True,
+            )
+        )
 
         if quality.overall >= config.quality_threshold or state.attempts >= config.max_attempts:
             state.phase = AgentPhase.DONE
@@ -316,19 +335,31 @@ async def _step_improve(
             api_key = providers.get(state.provider_used, "")
             feedback = state.quality.feedback if state.quality else ""
             improved = await improve_tree(
-                state.tree_data or {}, feedback, prompt, state.provider_used, api_key,
+                state.tree_data or {},
+                feedback,
+                prompt,
+                state.provider_used,
+                api_key,
             )
             state.tree_data = improved
             state.phase = AgentPhase.EVALUATE
-            state.steps.append(AgentStep(
-                phase="improve", provider=state.provider_used,
-                duration_seconds=round(time.perf_counter() - step_start, 3), success=True,
-            ))
+            state.steps.append(
+                AgentStep(
+                    phase="improve",
+                    provider=state.provider_used,
+                    duration_seconds=round(time.perf_counter() - step_start, 3),
+                    success=True,
+                )
+            )
 
         except Exception as e:
             logger.warning(f"Improve step failed: {e}")
-            state.steps.append(AgentStep(
-                phase="improve", provider=state.provider_used,
-                duration_seconds=round(time.perf_counter() - step_start, 3), success=False,
-            ))
+            state.steps.append(
+                AgentStep(
+                    phase="improve",
+                    provider=state.provider_used,
+                    duration_seconds=round(time.perf_counter() - step_start, 3),
+                    success=False,
+                )
+            )
             state.phase = AgentPhase.DONE

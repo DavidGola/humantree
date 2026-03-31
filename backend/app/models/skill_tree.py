@@ -23,9 +23,7 @@ class SkillTree(BaseModel):
     created_at: Mapped[datetime] = mapped_column(server_default=text("CURRENT_TIMESTAMP"))
 
     # Semantic search: embedding vector from local model
-    embedding: Mapped[list[float] | None] = mapped_column(
-        Vector(EMBEDDING_DIMENSIONS), nullable=True, default=None
-    )
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIMENSIONS), nullable=True, default=None)
     # Full-text search: PostgreSQL tsvector
     search_vector = Column(TSVECTOR, nullable=True)
 

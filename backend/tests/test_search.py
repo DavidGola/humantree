@@ -147,10 +147,7 @@ class TestSemanticSearch:
         """Offset parameter skips results."""
         mock_gen.side_effect = NotImplementedError("not configured")
 
-        rows = [
-            _make_tree_row(i, f"Tree {i}", f"Desc {i}", "user1", "text_score", 1.0 - i * 0.1)
-            for i in range(5)
-        ]
+        rows = [_make_tree_row(i, f"Tree {i}", f"Desc {i}", "user1", "text_score", 1.0 - i * 0.1) for i in range(5)]
 
         mock_fts = MagicMock()
         mock_fts.all.return_value = rows

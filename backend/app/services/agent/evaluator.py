@@ -18,6 +18,7 @@ def _parse_quality_score(text: str) -> QualityScore:
     text = text.strip()
     if not text.startswith("{"):
         import re
+
         match = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", text, re.DOTALL)
         if match:
             text = match.group(1).strip()

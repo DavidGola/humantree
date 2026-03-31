@@ -43,12 +43,8 @@ async def _safe_embed(tree_id: int) -> None:
 
 def _build_search_vector(tree: SkillTree):
     """Build the tsvector expression for a skill tree (does NOT commit)."""
-    return func.setweight(
-        func.to_tsvector("french", func.coalesce(tree.name, "")), literal_column("'A'")
-    ).op("||")(
-        func.setweight(
-            func.to_tsvector("french", func.coalesce(tree.description, "")), literal_column("'B'")
-        )
+    return func.setweight(func.to_tsvector("french", func.coalesce(tree.name, "")), literal_column("'A'")).op("||")(
+        func.setweight(func.to_tsvector("french", func.coalesce(tree.description, "")), literal_column("'B'"))
     )
 
 

@@ -26,19 +26,23 @@ VALID_TREE = {
     ],
 }
 
-VALID_EVALUATION_JSON = json.dumps({
-    "structure": 0.9,
-    "pedagogy": 0.8,
-    "completeness": 0.7,
-    "feedback": "Good structure, could add more skills.",
-})
+VALID_EVALUATION_JSON = json.dumps(
+    {
+        "structure": 0.9,
+        "pedagogy": 0.8,
+        "completeness": 0.7,
+        "feedback": "Good structure, could add more skills.",
+    }
+)
 
-LOW_SCORE_EVALUATION_JSON = json.dumps({
-    "structure": 0.4,
-    "pedagogy": 0.3,
-    "completeness": 0.5,
-    "feedback": "Too few skills, descriptions too short.",
-})
+LOW_SCORE_EVALUATION_JSON = json.dumps(
+    {
+        "structure": 0.4,
+        "pedagogy": 0.3,
+        "completeness": 0.5,
+        "feedback": "Too few skills, descriptions too short.",
+    }
+)
 
 
 def _make_llm_result(text: str) -> LLMResult:
@@ -48,6 +52,7 @@ def _make_llm_result(text: str) -> LLMResult:
 # ============================================================
 # Evaluator: _parse_quality_score
 # ============================================================
+
 
 class TestParseQualityScore:
     def test_valid_json(self):
@@ -87,6 +92,7 @@ class TestParseQualityScore:
 # Evaluator: evaluate_tree
 # ============================================================
 
+
 class TestEvaluateTree:
     @pytest.mark.asyncio
     async def test_valid_response(self):
@@ -120,6 +126,7 @@ class TestEvaluateTree:
 # Evaluator: _skip_score
 # ============================================================
 
+
 class TestSkipScore:
     def test_default(self):
         s = _skip_score()
@@ -134,6 +141,7 @@ class TestSkipScore:
 # ============================================================
 # Improver: improve_tree
 # ============================================================
+
 
 class TestImproveTree:
     @pytest.mark.asyncio
@@ -179,6 +187,7 @@ class TestImproveTree:
 # ============================================================
 # Fallback: _call_with_fallback
 # ============================================================
+
 
 class TestCallWithFallback:
     @pytest.mark.asyncio
@@ -237,9 +246,11 @@ class TestCallWithFallback:
 # Orchestrator: run_tree_agent
 # ============================================================
 
+
 def _mock_api_key_response(provider, created_at=None):
     """Create a mock ApiKeyResponseSchema."""
     from datetime import datetime
+
     mock = MagicMock()
     mock.provider = provider
     mock.created_at = created_at or datetime.now()
@@ -257,14 +268,14 @@ class TestRunTreeAgent:
 
         mock_db = AsyncMock()
         with (
-            patch("app.services.agent.orchestrator.list_api_keys", new_callable=AsyncMock,
-                  return_value=[_mock_api_key_response("anthropic")]),
-            patch("app.services.agent.orchestrator.get_api_key", new_callable=AsyncMock,
-                  return_value="fake-key"),
-            patch("app.services.agent.orchestrator._call_provider", new_callable=AsyncMock,
-                  return_value=gen_result),
-            patch("app.services.agent.evaluator._call_provider", new_callable=AsyncMock,
-                  return_value=eval_result),
+            patch(
+                "app.services.agent.orchestrator.list_api_keys",
+                new_callable=AsyncMock,
+                return_value=[_mock_api_key_response("anthropic")],
+            ),
+            patch("app.services.agent.orchestrator.get_api_key", new_callable=AsyncMock, return_value="fake-key"),
+            patch("app.services.agent.orchestrator._call_provider", new_callable=AsyncMock, return_value=gen_result),
+            patch("app.services.agent.evaluator._call_provider", new_callable=AsyncMock, return_value=eval_result),
         ):
             result = await run_tree_agent(mock_db, 1, "Learn Python", "anthropic")
 
@@ -295,14 +306,14 @@ class TestRunTreeAgent:
 
         mock_db = AsyncMock()
         with (
-            patch("app.services.agent.orchestrator.list_api_keys", new_callable=AsyncMock,
-                  return_value=[_mock_api_key_response("anthropic")]),
-            patch("app.services.agent.orchestrator.get_api_key", new_callable=AsyncMock,
-                  return_value="fake-key"),
-            patch("app.services.agent.orchestrator._call_provider", new_callable=AsyncMock,
-                  return_value=gen_result),
-            patch("app.services.agent.improver._call_provider", new_callable=AsyncMock,
-                  return_value=improve_result),
+            patch(
+                "app.services.agent.orchestrator.list_api_keys",
+                new_callable=AsyncMock,
+                return_value=[_mock_api_key_response("anthropic")],
+            ),
+            patch("app.services.agent.orchestrator.get_api_key", new_callable=AsyncMock, return_value="fake-key"),
+            patch("app.services.agent.orchestrator._call_provider", new_callable=AsyncMock, return_value=gen_result),
+            patch("app.services.agent.improver._call_provider", new_callable=AsyncMock, return_value=improve_result),
             patch("app.services.agent.evaluator._call_provider", side_effect=mock_eval_call),
         ):
             result = await run_tree_agent(mock_db, 1, "Learn Python", "anthropic")
@@ -320,14 +331,14 @@ class TestRunTreeAgent:
         config = AgentConfig(max_attempts=1)  # Only 1 attempt
 
         with (
-            patch("app.services.agent.orchestrator.list_api_keys", new_callable=AsyncMock,
-                  return_value=[_mock_api_key_response("anthropic")]),
-            patch("app.services.agent.orchestrator.get_api_key", new_callable=AsyncMock,
-                  return_value="fake-key"),
-            patch("app.services.agent.orchestrator._call_provider", new_callable=AsyncMock,
-                  return_value=gen_result),
-            patch("app.services.agent.evaluator._call_provider", new_callable=AsyncMock,
-                  return_value=low_eval),
+            patch(
+                "app.services.agent.orchestrator.list_api_keys",
+                new_callable=AsyncMock,
+                return_value=[_mock_api_key_response("anthropic")],
+            ),
+            patch("app.services.agent.orchestrator.get_api_key", new_callable=AsyncMock, return_value="fake-key"),
+            patch("app.services.agent.orchestrator._call_provider", new_callable=AsyncMock, return_value=gen_result),
+            patch("app.services.agent.evaluator._call_provider", new_callable=AsyncMock, return_value=low_eval),
         ):
             result = await run_tree_agent(mock_db, 1, "Learn Python", "anthropic", config)
 
@@ -346,10 +357,12 @@ class TestRunTreeAgent:
     async def test_provider_not_configured_raises_400(self):
         mock_db = AsyncMock()
         with (
-            patch("app.services.agent.orchestrator.list_api_keys", new_callable=AsyncMock,
-                  return_value=[_mock_api_key_response("openai")]),
-            patch("app.services.agent.orchestrator.get_api_key", new_callable=AsyncMock,
-                  return_value="fake-key"),
+            patch(
+                "app.services.agent.orchestrator.list_api_keys",
+                new_callable=AsyncMock,
+                return_value=[_mock_api_key_response("openai")],
+            ),
+            patch("app.services.agent.orchestrator.get_api_key", new_callable=AsyncMock, return_value="fake-key"),
         ):
             with pytest.raises(HTTPException) as exc_info:
                 await run_tree_agent(mock_db, 1, "Learn Python", "anthropic")
@@ -372,13 +385,14 @@ class TestRunTreeAgent:
 
         mock_db = AsyncMock()
         with (
-            patch("app.services.agent.orchestrator.list_api_keys", new_callable=AsyncMock,
-                  return_value=[_mock_api_key_response("anthropic"), _mock_api_key_response("openai")]),
-            patch("app.services.agent.orchestrator.get_api_key", new_callable=AsyncMock,
-                  return_value="fake-key"),
+            patch(
+                "app.services.agent.orchestrator.list_api_keys",
+                new_callable=AsyncMock,
+                return_value=[_mock_api_key_response("anthropic"), _mock_api_key_response("openai")],
+            ),
+            patch("app.services.agent.orchestrator.get_api_key", new_callable=AsyncMock, return_value="fake-key"),
             patch("app.services.agent.orchestrator._call_provider", side_effect=mock_gen),
-            patch("app.services.agent.evaluator._call_provider", new_callable=AsyncMock,
-                  return_value=eval_result),
+            patch("app.services.agent.evaluator._call_provider", new_callable=AsyncMock, return_value=eval_result),
         ):
             result = await run_tree_agent(mock_db, 1, "Learn Python", "anthropic")
 
@@ -393,14 +407,14 @@ class TestRunTreeAgent:
 
         mock_db = AsyncMock()
         with (
-            patch("app.services.agent.orchestrator.list_api_keys", new_callable=AsyncMock,
-                  return_value=[_mock_api_key_response("anthropic")]),
-            patch("app.services.agent.orchestrator.get_api_key", new_callable=AsyncMock,
-                  return_value="fake-key"),
-            patch("app.services.agent.orchestrator._call_provider", new_callable=AsyncMock,
-                  return_value=gen_result),
-            patch("app.services.agent.evaluator._call_provider", new_callable=AsyncMock,
-                  return_value=eval_result),
+            patch(
+                "app.services.agent.orchestrator.list_api_keys",
+                new_callable=AsyncMock,
+                return_value=[_mock_api_key_response("anthropic")],
+            ),
+            patch("app.services.agent.orchestrator.get_api_key", new_callable=AsyncMock, return_value="fake-key"),
+            patch("app.services.agent.orchestrator._call_provider", new_callable=AsyncMock, return_value=gen_result),
+            patch("app.services.agent.evaluator._call_provider", new_callable=AsyncMock, return_value=eval_result),
         ):
             result = await run_tree_agent(mock_db, 1, "Learn Python", "anthropic")
 
@@ -417,21 +431,23 @@ class TestRunTreeAgent:
     @pytest.mark.asyncio
     async def test_tokens_accumulated(self):
         """Tokens from all LLM calls are summed."""
-        gen_result = LLMResult(text=json.dumps(VALID_TREE), input_tokens=200, output_tokens=300,
-                               model="test", provider="anthropic")
-        eval_result = LLMResult(text=VALID_EVALUATION_JSON, input_tokens=150, output_tokens=50,
-                                model="test", provider="anthropic")
+        gen_result = LLMResult(
+            text=json.dumps(VALID_TREE), input_tokens=200, output_tokens=300, model="test", provider="anthropic"
+        )
+        eval_result = LLMResult(
+            text=VALID_EVALUATION_JSON, input_tokens=150, output_tokens=50, model="test", provider="anthropic"
+        )
 
         mock_db = AsyncMock()
         with (
-            patch("app.services.agent.orchestrator.list_api_keys", new_callable=AsyncMock,
-                  return_value=[_mock_api_key_response("anthropic")]),
-            patch("app.services.agent.orchestrator.get_api_key", new_callable=AsyncMock,
-                  return_value="fake-key"),
-            patch("app.services.agent.orchestrator._call_provider", new_callable=AsyncMock,
-                  return_value=gen_result),
-            patch("app.services.agent.evaluator._call_provider", new_callable=AsyncMock,
-                  return_value=eval_result),
+            patch(
+                "app.services.agent.orchestrator.list_api_keys",
+                new_callable=AsyncMock,
+                return_value=[_mock_api_key_response("anthropic")],
+            ),
+            patch("app.services.agent.orchestrator.get_api_key", new_callable=AsyncMock, return_value="fake-key"),
+            patch("app.services.agent.orchestrator._call_provider", new_callable=AsyncMock, return_value=gen_result),
+            patch("app.services.agent.evaluator._call_provider", new_callable=AsyncMock, return_value=eval_result),
         ):
             result = await run_tree_agent(mock_db, 1, "Learn Python", "anthropic")
 
@@ -446,14 +462,18 @@ class TestRunTreeAgent:
 
         mock_db = AsyncMock()
         with (
-            patch("app.services.agent.orchestrator.list_api_keys", new_callable=AsyncMock,
-                  return_value=[_mock_api_key_response("anthropic")]),
-            patch("app.services.agent.orchestrator.get_api_key", new_callable=AsyncMock,
-                  return_value="fake-key"),
-            patch("app.services.agent.orchestrator._call_provider", new_callable=AsyncMock,
-                  return_value=gen_result),
-            patch("app.services.agent.evaluator._call_provider", new_callable=AsyncMock,
-                  side_effect=RuntimeError("Eval broken")),
+            patch(
+                "app.services.agent.orchestrator.list_api_keys",
+                new_callable=AsyncMock,
+                return_value=[_mock_api_key_response("anthropic")],
+            ),
+            patch("app.services.agent.orchestrator.get_api_key", new_callable=AsyncMock, return_value="fake-key"),
+            patch("app.services.agent.orchestrator._call_provider", new_callable=AsyncMock, return_value=gen_result),
+            patch(
+                "app.services.agent.evaluator._call_provider",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("Eval broken"),
+            ),
         ):
             result = await run_tree_agent(mock_db, 1, "Learn Python", "anthropic")
 

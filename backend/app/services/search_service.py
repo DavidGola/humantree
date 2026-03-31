@@ -120,11 +120,7 @@ async def semantic_search(
         # 5. Load tags for results
         if paginated:
             tree_ids = [r["id"] for r in paginated]
-            tags_stmt = (
-                select(SkillTree)
-                .where(SkillTree.id.in_(tree_ids))
-                .options(selectinload(SkillTree.tags))
-            )
+            tags_stmt = select(SkillTree).where(SkillTree.id.in_(tree_ids)).options(selectinload(SkillTree.tags))
             tag_result = await db.execute(tags_stmt)
             tags_by_id: dict[int, list[str]] = {}
             for tree in tag_result.scalars().all():

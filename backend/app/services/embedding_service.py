@@ -110,10 +110,10 @@ async def embed_skill_tree(db: AsyncSession, tree_id: int) -> bool:
 
         # Update tree embedding + search vector
         tree.embedding = vector
-        tree.search_vector = (
-            func.setweight(func.to_tsvector("french", func.coalesce(tree.name, "")), literal_column("'A'")).op("||")(
-                func.setweight(func.to_tsvector("french", func.coalesce(tree.description, "")), literal_column("'B'"))
-            )
+        tree.search_vector = func.setweight(
+            func.to_tsvector("french", func.coalesce(tree.name, "")), literal_column("'A'")
+        ).op("||")(
+            func.setweight(func.to_tsvector("french", func.coalesce(tree.description, "")), literal_column("'B'"))
         )
         await db.commit()
         return True

@@ -124,7 +124,11 @@ def _validate_tree_structure(data: dict) -> dict:
 
 
 async def _call_anthropic(
-    api_key: str, prompt: str, system_prompt: str = SYSTEM_PROMPT, max_tokens: int = MAX_TOKENS_GENERATE, json_mode: bool = False
+    api_key: str,
+    prompt: str,
+    system_prompt: str = SYSTEM_PROMPT,
+    max_tokens: int = MAX_TOKENS_GENERATE,
+    json_mode: bool = False,
 ) -> LLMResult:
     """Call Anthropic API."""
     import anthropic
@@ -146,7 +150,11 @@ async def _call_anthropic(
 
 
 async def _call_google(
-    api_key: str, prompt: str, system_prompt: str = SYSTEM_PROMPT, max_tokens: int = MAX_TOKENS_GENERATE, json_mode: bool = False
+    api_key: str,
+    prompt: str,
+    system_prompt: str = SYSTEM_PROMPT,
+    max_tokens: int = MAX_TOKENS_GENERATE,
+    json_mode: bool = False,
 ) -> LLMResult:
     """Call Google Gemini API."""
     from google import genai
@@ -171,7 +179,11 @@ async def _call_google(
 
 
 async def _call_openai(
-    api_key: str, prompt: str, system_prompt: str = SYSTEM_PROMPT, max_tokens: int = MAX_TOKENS_GENERATE, json_mode: bool = False
+    api_key: str,
+    prompt: str,
+    system_prompt: str = SYSTEM_PROMPT,
+    max_tokens: int = MAX_TOKENS_GENERATE,
+    json_mode: bool = False,
 ) -> LLMResult:
     """Call OpenAI API."""
     from openai import AsyncOpenAI
