@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Column, ForeignKey, String, Text, text
+from sqlalchemy import Column, ForeignKey, Index, String, Text, text
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -16,6 +16,16 @@ class SkillTree(BaseModel):
     """Model representing a skill tree."""
 
     __tablename__ = "skill_trees"
+    __table_args__ = (
+        Index(
+            "idx_skill_trees_embedding",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_with={"m": 16, "ef_construction": 64},
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
+        Index("idx_skill_trees_search_vector", "search_vector", postgresql_using="gin"),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True)
     description: Mapped[str | None] = mapped_column(Text)
