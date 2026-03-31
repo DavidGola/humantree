@@ -13,6 +13,7 @@ updates:
       - "security"
     ignore:
       - dependency-name: "pydantic-core"  # géré par pydantic
+      - dependency-name: "mpmath"  # bloqué à <1.4 par sympy
 
   # Node.js frontend
   - package-ecosystem: "npm"
