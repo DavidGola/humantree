@@ -41,11 +41,41 @@ async def _safe_embed(tree_id: int) -> None:
         logger.warning(f"Embedding generation failed for tree {tree_id}: {e}")
 
 
-def _build_search_vector(tree: SkillTree):
-    """Build the tsvector expression for a skill tree (does NOT commit)."""
-    return func.setweight(func.to_tsvector("french", func.coalesce(tree.name, "")), literal_column("'A'")).op("||")(
-        func.setweight(func.to_tsvector("french", func.coalesce(tree.description, "")), literal_column("'B'"))
+def _concat_skills_text(skills) -> str:
+    """Concatenate skill names and descriptions into a single string for FTS."""
+    parts = []
+    for s in skills:
+        if s.description:
+            parts.append(f"{s.name} {s.description}")
+        else:
+            parts.append(s.name)
+    return " ".join(parts)
+
+
+def _build_search_vector(tree: SkillTree, skills_text: str = ""):
+    """Build the tsvector expression for a skill tree (does NOT commit).
+
+    Args:
+        tree: the skill tree ORM object.
+        skills_text: concatenated skill names and descriptions.
+    """
+    expr = func.setweight(
+        func.to_tsvector("french", func.unaccent(func.coalesce(tree.name, ""))),
+        literal_column("'A'"),
+    ).op("||")(
+        func.setweight(
+            func.to_tsvector("french", func.unaccent(func.coalesce(tree.description, ""))),
+            literal_column("'B'"),
+        )
     )
+    if skills_text:
+        expr = expr.op("||")(
+            func.setweight(
+                func.to_tsvector("french", func.unaccent(skills_text)),
+                literal_column("'C'"),
+            )
+        )
+    return expr
 
 
 async def _sync_tags(db: AsyncSession, skill_tree_id: int, tag_names: list[str]) -> None:
@@ -254,7 +284,11 @@ async def update_skill_tree(
 ) -> SkillTreeSimpleSchema | None:
     """Met à jour un skill_tree existant dans la base de données."""
     # SELECT
-    stmt = select(SkillTree).where(SkillTree.id == skill_tree_id).options(selectinload(SkillTree.tags))
+    stmt = (
+        select(SkillTree)
+        .where(SkillTree.id == skill_tree_id)
+        .options(selectinload(SkillTree.tags), selectinload(SkillTree.skills))
+    )
     result = await db.execute(stmt)
     skill_tree = result.scalar_one_or_none()
     if skill_tree is None:
@@ -269,8 +303,9 @@ async def update_skill_tree(
     if data.tags is not None:
         await _sync_tags(db, skill_tree_id, data.tags)
 
-    # Set search vector before commit
-    skill_tree.search_vector = _build_search_vector(skill_tree)
+    # Set search vector before commit (includes skills for FTS)
+    skills_text = _concat_skills_text(skill_tree.skills)
+    skill_tree.search_vector = _build_search_vector(skill_tree, skills_text)
 
     try:
         await db.commit()

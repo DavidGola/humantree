@@ -18,6 +18,7 @@ tracer = trace.get_tracer("humantree.search")
 def _filter_by_score_gap(
     rows: list[dict],
     gap_ratio: float = 0.02,
+    min_score: float = 0.82,
 ) -> list[dict]:
     """Keep only results above the first significant score gap.
 
@@ -26,14 +27,24 @@ def _filter_by_score_gap(
     Instead, we detect where scores drop sharply relative to the top
     result — that boundary separates the relevant cluster from noise.
 
+    If even the top score is below min_score, nothing is relevant
+    and we return an empty list (pure noise).
+
     Args:
         rows: sorted by semantic_score descending.
         gap_ratio: a gap > top_score * gap_ratio triggers a cut.
+        min_score: absolute floor — if top result is below this, return [].
     """
-    if len(rows) <= 1:
+    if not rows:
         return rows
 
     top_score = rows[0]["semantic_score"]
+    if top_score < min_score:
+        return []
+
+    if len(rows) <= 1:
+        return rows
+
     min_gap = top_score * gap_ratio
 
     for i in range(1, len(rows)):
@@ -107,8 +118,8 @@ async def semantic_search(
             logger.warning(f"Semantic search failed, falling back to text-only: {e}")
             span.set_attribute("search.semantic_results", 0)
 
-        # 2. Full-text search via tsvector
-        ts_query = func.plainto_tsquery("french", query)
+        # 2. Full-text search via tsvector (unaccent for accent-insensitive matching)
+        ts_query = func.plainto_tsquery("french", func.unaccent(query))
         fts_stmt = (
             select(
                 SkillTree.id,

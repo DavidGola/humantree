@@ -52,13 +52,19 @@ async def backfill(*, force: bool = False):
             logger.info("Nothing to backfill")
             return
 
-        # Also update tsvector for trees missing it
-        tsvector_stmt = text("""
-            UPDATE skill_trees SET search_vector =
-                setweight(to_tsvector('french', coalesce(name, '')), 'A') ||
-                setweight(to_tsvector('french', coalesce(description, '')), 'B')
-            WHERE search_vector IS NULL
-        """)
+        # Update tsvector (with unaccent + skills for FTS)
+        _tsvector_sql = """
+            UPDATE skill_trees st SET search_vector =
+                setweight(to_tsvector('french', unaccent(coalesce(st.name, ''))), 'A') ||
+                setweight(to_tsvector('french', unaccent(coalesce(st.description, ''))), 'B') ||
+                setweight(to_tsvector('french', unaccent(coalesce(
+                    (SELECT string_agg(s.name || ' ' || coalesce(s.description, ''), ' ')
+                     FROM skills s WHERE s.skill_tree_id = st.id),
+                ''))), 'C')
+        """
+        if not force:
+            _tsvector_sql += " WHERE st.search_vector IS NULL"
+        tsvector_stmt = text(_tsvector_sql)  # noqa: S608
         result = await db.execute(tsvector_stmt)
         await db.commit()
         logger.info(f"Updated {result.rowcount} tsvector entries")

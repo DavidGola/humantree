@@ -3,13 +3,14 @@ import time
 
 from opentelemetry import trace
 from sentence_transformers import SentenceTransformer
-from sqlalchemy import func, literal_column, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.constants import EMBEDDING_MODEL
 from app.metrics import embedding_duration_seconds, embedding_requests_total
 from app.models.skill_tree import SkillTree
+from app.services.skill_tree_service import _build_search_vector, _concat_skills_text
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer("humantree.embedding")
@@ -120,10 +121,7 @@ async def embed_skill_tree(db: AsyncSession, tree_id: int) -> bool:
 
         # Update tree embedding + search vector
         tree.embedding = vector
-        tree.search_vector = func.setweight(
-            func.to_tsvector("french", func.coalesce(tree.name, "")), literal_column("'A'")
-        ).op("||")(
-            func.setweight(func.to_tsvector("french", func.coalesce(tree.description, "")), literal_column("'B'"))
-        )
+        skills_text = _concat_skills_text(tree.skills)
+        tree.search_vector = _build_search_vector(tree, skills_text)
         await db.commit()
         return True
