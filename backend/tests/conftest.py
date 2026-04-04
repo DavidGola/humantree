@@ -35,6 +35,16 @@ async def setup_db():
 
 
 @pytest_asyncio.fixture
+async def db_session(setup_db):
+    """Session DB directe pour les tests unitaires de services.
+    expire_on_commit=False évite les lazy loads synchrones après commit (MissingGreenlet).
+    """
+    factory = async_sessionmaker(engine_test, expire_on_commit=False)
+    async with factory() as session:
+        yield session
+
+
+@pytest_asyncio.fixture
 async def client(setup_db):
     async def get_db_test():
         async with TestSessionLocal() as session:

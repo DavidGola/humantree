@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from tests.conftest import auth_cookies, create_skill_tree, register_user
@@ -294,3 +296,36 @@ async def test_invalid_token(client):
 async def test_get_profile_unauthenticated(client):
     response = await client.get("/api/v1/users/me/profile")
     assert response.status_code in [401, 404]
+
+
+# ========== CONCURRENCE ==========
+
+
+@pytest.mark.asyncio
+async def test_concurrent_register_same_email_returns_409(client):
+    """Deux inscriptions simultanées avec le même email : une seule réussit, l'autre → 409."""
+    payload = {"username": "alice", "email": "alice@example.com", "password": "password123"}
+    payload_b = {"username": "bob", "email": "alice@example.com", "password": "password123"}
+
+    responses = await asyncio.gather(
+        client.post("/api/v1/users/register", json=payload),
+        client.post("/api/v1/users/register", json=payload_b),
+    )
+
+    status_codes = sorted(r.status_code for r in responses)
+    assert status_codes == [200, 409], f"Expected [200, 409], got {status_codes}"
+
+
+@pytest.mark.asyncio
+async def test_concurrent_register_same_username_returns_409(client):
+    """Deux inscriptions simultanées avec le même username : une seule réussit, l'autre → 409."""
+    payload_a = {"username": "alice", "email": "alice@example.com", "password": "password123"}
+    payload_b = {"username": "alice", "email": "bob@example.com", "password": "password123"}
+
+    responses = await asyncio.gather(
+        client.post("/api/v1/users/register", json=payload_a),
+        client.post("/api/v1/users/register", json=payload_b),
+    )
+
+    status_codes = sorted(r.status_code for r in responses)
+    assert status_codes == [200, 409], f"Expected [200, 409], got {status_codes}"

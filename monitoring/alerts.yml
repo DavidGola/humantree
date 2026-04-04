@@ -1,0 +1,38 @@
+groups:
+  - name: humantree
+    rules:
+
+      # Backend inaccessible depuis 1 minute
+      - alert: BackendDown
+        expr: up{job="humantree-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend HumanTree inaccessible"
+          description: "Le backend est down depuis plus d'1 minute."
+
+      # Taux d'erreur 5xx > 5% sur 5 minutes
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Taux d'erreur élevé ({{ $value | humanizePercentage }})"
+          description: "Plus de 5% des requêtes retournent une erreur 5xx depuis 5 minutes."
+
+      # Pool de connexions DB saturé (> 8 sur 15 max)
+      - alert: DBPoolSaturated
+        expr: db_pool_checked_out >= 8
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pool DB saturé ({{ $value }} connexions actives)"
+          description: "Plus de 8 connexions DB actives depuis 2 minutes. Risque de dégradation."
