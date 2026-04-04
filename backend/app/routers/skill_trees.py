@@ -5,7 +5,7 @@
 # ========== IMPORTS ==========
 
 # FastAPI core
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
 # SQLAlchemy
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +30,7 @@ from app.services.favorite_service import (
 
 # Services
 from app.services.skill_tree_service import (
+    _safe_embed,
     create_skill_tree,
     delete_skill_tree,
     get_all,
@@ -183,6 +184,7 @@ async def remove_skill_tree_from_favorites(
 )
 async def create_skill_tree_endpoint(
     data: SkillTreeCreateWithoutUsernameSchema,
+    background_tasks: BackgroundTasks,
     user_id: int = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -199,6 +201,7 @@ async def create_skill_tree_endpoint(
             tags=data.tags,
         ),
     )
+    background_tasks.add_task(_safe_embed, result.id)
     return result
 
 
@@ -250,6 +253,7 @@ async def delete_skill_tree_endpoint(
 async def update_skill_tree_endpoint(
     id: int,
     data: SkillTreeUpdateSchema,
+    background_tasks: BackgroundTasks,
     user_id: int = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -259,6 +263,7 @@ async def update_skill_tree_endpoint(
     result = await update_skill_tree(db, id, data)
     if result is None:
         raise HTTPException(status_code=404, detail="Skill tree not found")
+    background_tasks.add_task(_safe_embed, result.id)
     return result
 
 
@@ -271,6 +276,7 @@ async def update_skill_tree_endpoint(
 async def save_skill_tree_endpoint(
     id: int,
     data: SkillTreeSaveSchema,
+    background_tasks: BackgroundTasks,
     user_id: int = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -282,6 +288,7 @@ async def save_skill_tree_endpoint(
     skill_tree = await save_skill_tree(db, data)
     if not skill_tree:
         raise HTTPException(status_code=500, detail="Skill tree could not be saved")
+    background_tasks.add_task(_safe_embed, id)
     return skill_tree
 
 

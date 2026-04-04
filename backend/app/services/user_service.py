@@ -1,5 +1,7 @@
 # /backend/app/services/user_service.py
 
+import asyncio
+
 from bcrypt import checkpw, gensalt, hashpw
 from fastapi import HTTPException
 from sqlalchemy import delete, func, select
@@ -21,23 +23,22 @@ from app.schemas.user import (
 
 async def register_user(db: AsyncSession, user: UserCreateSchema) -> UserSchema:
     """Enregistre un nouvel utilisateur dans la base de données."""
-    # Vérifier si l'email existe déjà
-
-    if await check_user_email(db, user.email):
-        raise HTTPException(status_code=409, detail="Email already registered")
-
-    if await check_user_username(db, user.username):
-        raise HTTPException(status_code=409, detail="Username already taken")
-
+    loop = asyncio.get_running_loop()
+    password_hash = await loop.run_in_executor(None, hashpw, user.password.encode("utf-8"), gensalt())
     new_user = User(
         username=user.username,
         email=user.email,
-        password_hash=hashpw(user.password.encode("utf-8"), gensalt()).decode(
-            "utf-8"
-        ),  # Assurez-vous de hasher le mot de passe
+        password_hash=password_hash.decode("utf-8"),
     )
     db.add(new_user)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as e:
+        await db.rollback()
+        error_msg = str(e.orig).lower() if e.orig else str(e).lower()
+        if "username" in error_msg:
+            raise HTTPException(status_code=409, detail="Username already taken")
+        raise HTTPException(status_code=409, detail="Email already registered")
     await db.refresh(new_user)
 
     return UserSchema.model_validate(new_user)
@@ -50,10 +51,13 @@ async def authenticate_user(db: AsyncSession, user_login: UserLoginSchema) -> Us
     )
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
-    if user and checkpw(
-        user_login.password.encode("utf-8"), user.password_hash.encode("utf-8")
-    ):  # Vérifiez le mot de passe
-        return UserSchema.model_validate(user)
+    if user:
+        loop = asyncio.get_running_loop()
+        password_matches = await loop.run_in_executor(
+            None, checkpw, user_login.password.encode("utf-8"), user.password_hash.encode("utf-8")
+        )
+        if password_matches:
+            return UserSchema.model_validate(user)
     return None
 
 
@@ -102,7 +106,9 @@ async def update_user(db: AsyncSession, user_id: int, data: UserUpdateSchema) ->
             raise HTTPException(status_code=409, detail="Email already registered")
         user.email = data.email
     if data.password is not None:
-        user.password_hash = hashpw(data.password.encode("utf-8"), gensalt()).decode("utf-8")
+        loop = asyncio.get_running_loop()
+        password_hash = await loop.run_in_executor(None, hashpw, data.password.encode("utf-8"), gensalt())
+        user.password_hash = password_hash.decode("utf-8")
     if data.bio is not None:
         user.bio = data.bio
     if data.avatar_url is not None:

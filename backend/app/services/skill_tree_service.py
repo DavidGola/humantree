@@ -1,6 +1,5 @@
 # /backend/app/services/skill_tree_service.py
 
-import asyncio
 import logging
 import os
 
@@ -260,9 +259,6 @@ async def create_skill_tree(db: AsyncSession, data: SkillTreeCreateSchema) -> Sk
     await db.commit()
     await db.refresh(skill_tree_orm)
 
-    # Fire-and-forget embedding
-    asyncio.create_task(_safe_embed(skill_tree_orm.id))
-
     return SkillTreeSimpleSchema.model_validate(skill_tree_orm)
 
 
@@ -318,9 +314,6 @@ async def update_skill_tree(
         raise HTTPException(status_code=400, detail="Erreur d'intégrité des données")
 
     await db.refresh(skill_tree)
-
-    # Fire-and-forget embedding
-    asyncio.create_task(_safe_embed(skill_tree_id))
 
     return SkillTreeSimpleSchema.model_validate(skill_tree)
 
@@ -421,9 +414,6 @@ async def save_skill_tree(db: AsyncSession, skill_tree: SkillTreeSaveSchema) -> 
             )
         logger.error("IntegrityError inattendue dans save_skill_tree: %s", e.orig)
         raise HTTPException(status_code=400, detail="Erreur d'intégrité des données")
-
-    # Fire-and-forget embedding (search_vector updated inside embed_skill_tree)
-    asyncio.create_task(_safe_embed(skill_tree.id))
 
     return True
 
