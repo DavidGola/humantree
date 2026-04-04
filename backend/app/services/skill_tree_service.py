@@ -3,14 +3,14 @@
 import logging
 import os
 from datetime import timedelta
-from enum import Enum
+from enum import StrEnum
 
 from fastapi import HTTPException
 from sqlalchemy import bindparam, delete, func, literal_column, select, text
-from sqlalchemy.types import Interval
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.types import Interval
 
 from app.database import async_session
 from app.models.skill import Skill
@@ -106,7 +106,7 @@ async def _sync_tags(db: AsyncSession, skill_tree_id: int, tag_names: list[str])
         db.add(SkillTreeTag(skill_tree_id=skill_tree_id, tag_id=existing_tags[name].id))
 
 
-class TrendingPeriod(str, Enum):
+class TrendingPeriod(StrEnum):
     DAY = "d"
     WEEK = "w"
     MONTH = "m"

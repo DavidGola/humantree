@@ -52,7 +52,11 @@ async def tree(db_session):
         ),
         pytest.param([skill(1, "Root1", True), skill(2, "Root2", True)], False, id="multiple_roots"),
         pytest.param([skill(1, "Orphan1", False), skill(2, "Orphan2", False, [1])], False, id="no_root"),
-        pytest.param([skill(1, "Root", True, [2]), skill(2, "Child", False, [1])], False, id="root_in_unlock_ids_circular"),
+        pytest.param(
+            [skill(1, "Root", True, [2]), skill(2, "Child", False, [1])],
+            False,
+            id="root_in_unlock_ids_circular",
+        ),
     ],
 )
 def test_is_root_skill_valid(skills, expected):
