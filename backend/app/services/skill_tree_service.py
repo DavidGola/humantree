@@ -2,9 +2,12 @@
 
 import logging
 import os
+from datetime import timedelta
+from enum import Enum
 
 from fastapi import HTTPException
-from sqlalchemy import delete, func, literal_column, select, text
+from sqlalchemy import bindparam, delete, func, literal_column, select, text
+from sqlalchemy.types import Interval
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -103,6 +106,19 @@ async def _sync_tags(db: AsyncSession, skill_tree_id: int, tag_names: list[str])
         db.add(SkillTreeTag(skill_tree_id=skill_tree_id, tag_id=existing_tags[name].id))
 
 
+class TrendingPeriod(str, Enum):
+    DAY = "d"
+    WEEK = "w"
+    MONTH = "m"
+
+
+_INTERVAL_MAP: dict[TrendingPeriod, timedelta] = {
+    TrendingPeriod.DAY: timedelta(days=1),
+    TrendingPeriod.WEEK: timedelta(days=7),
+    TrendingPeriod.MONTH: timedelta(days=30),
+}
+
+
 async def get_all(db: AsyncSession, tag: str | None = None) -> list[SkillTreeSimpleSchema]:
     """Récupère tous les skill_trees, avec filtrage optionnel par tag."""
     stmt = select(SkillTree).options(selectinload(SkillTree.tags))
@@ -119,7 +135,9 @@ async def get_all(db: AsyncSession, tag: str | None = None) -> list[SkillTreeSim
     return [SkillTreeSimpleSchema.model_validate(st) for st in list_skill_trees]
 
 
-async def get_trendings(db: AsyncSession, timestamp="w") -> list[SkillTreeSimpleSchema]:
+async def get_trendings(
+    db: AsyncSession, timestamp: TrendingPeriod = TrendingPeriod.WEEK
+) -> list[SkillTreeSimpleSchema]:
     """
     Récupère les skill_trees les plus populaires de la semaine.
 
@@ -129,39 +147,34 @@ async def get_trendings(db: AsyncSession, timestamp="w") -> list[SkillTreeSimple
 
     Args:
         db: Session de base de données async
+        timestamp: Période (DAY, WEEK, MONTH)
 
     Returns:
         Liste de SkillTreeListSchema
     """
-    timestamp_mapping = {
-        "w": "7 days",
-        "d": "1 day",
-        "m": "30 days",
-    }
+    interval = _INTERVAL_MAP[timestamp]
     stmt = text(
-        f"""SELECT skill_trees.id, skill_trees.name, skill_trees.description,
-         skill_trees.creator_username, skill_trees.created_at,  SUM(nb_users) AS score
+        """SELECT skill_trees.id, skill_trees.name, skill_trees.description,
+         skill_trees.creator_username, skill_trees.created_at, SUM(nb_users) AS score
   FROM (
       SELECT skill_tree_id, COUNT(DISTINCT user_id) AS nb_users
       FROM user_favorite_trees
-      WHERE created_at >= NOW() - INTERVAL '{timestamp_mapping.get(timestamp, "7 days")}'
+      WHERE created_at >= NOW() - :interval
       GROUP BY skill_tree_id
 
       UNION ALL
 
-      SELECT skills.skill_tree_id, COUNT(DISTINCT
-  user_check_skill.user_id) AS nb_users
+      SELECT skills.skill_tree_id, COUNT(DISTINCT user_check_skill.user_id) AS nb_users
       FROM user_check_skill
       INNER JOIN skills ON user_check_skill.skill_id = skills.id
-      WHERE user_check_skill.created_at >= NOW() - INTERVAL '{timestamp_mapping.get(timestamp, "7 days")}'
+      WHERE user_check_skill.created_at >= NOW() - :interval
       GROUP BY skills.skill_tree_id
   ) AS combined
   INNER JOIN skill_trees ON combined.skill_tree_id = skill_trees.id
   GROUP BY skill_trees.id
-  ORDER BY score DESC ;
-        """
-    )
-    result = await db.execute(stmt)
+  ORDER BY score DESC"""
+    ).bindparams(bindparam("interval", type_=Interval()))
+    result = await db.execute(stmt, {"interval": interval})
     skill_trees = result.fetchall()
 
     if not skill_trees:

@@ -30,6 +30,7 @@ from app.services.favorite_service import (
 
 # Services
 from app.services.skill_tree_service import (
+    TrendingPeriod,
     _safe_embed,
     create_skill_tree,
     delete_skill_tree,
@@ -77,7 +78,7 @@ async def get_all_skill_trees(
     description="Retrieve a list of trending skill trees based on user favorites and checked skills in the last 7 days",
 )
 async def get_trending_skill_trees_endpoint(
-    timestamp: str = "w",
+    timestamp: TrendingPeriod = TrendingPeriod.WEEK,
     db: AsyncSession = Depends(get_db),
 ):
     """
