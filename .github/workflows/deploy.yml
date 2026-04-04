@@ -131,21 +131,25 @@ jobs:
         with:
           context: ./backend
           push: true
-          no-cache: true
           tags: |
             ghcr.io/davidgola/humantree-backend:latest
             ghcr.io/davidgola/humantree-backend:${{ github.sha }}
+          labels: org.opencontainers.image.source=humantree
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
           push: true
-          no-cache: true
           build-args: VITE_API_URL=${{ secrets.VITE_API_URL }}
           tags: |
             ghcr.io/davidgola/humantree-frontend:latest
             ghcr.io/davidgola/humantree-frontend:${{ github.sha }}
+          labels: org.opencontainers.image.source=humantree
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy:
     runs-on: ubuntu-latest
@@ -164,10 +168,15 @@ jobs:
             sudo cp nginx/humantree.conf /etc/nginx/sites-available/humantree || true
             sudo nginx -t && sudo systemctl reload nginx || true
             echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ secrets.SSH_USER }} --password-stdin
+
+            # Sauvegarder les images actuellement en prod pour rollback
+            PREV_BACKEND=$(docker inspect ghcr.io/davidgola/humantree-backend:latest --format='{{.Id}}' 2>/dev/null || echo "")
+            PREV_FRONTEND=$(docker inspect ghcr.io/davidgola/humantree-frontend:latest --format='{{.Id}}' 2>/dev/null || echo "")
+
             set -e
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --force-recreate --pull always
-            docker system prune -af
+
             for i in {1..10}; do
               echo "Checking if the application is up... (attempt $i)"
               if curl -X GET http://127.0.0.1:8000/health -f && curl -X GET http://127.0.0.1:3000/ -f; then
@@ -184,17 +193,33 @@ jobs:
             done
 
             echo "=== Smoke tests HTTPS ==="
-            curl -sf https://humantree.vps.webdock.cloud/ > /dev/null || { echo "FAIL: frontend HTTPS"; exit 1; }
-            echo "OK: frontend HTTPS"
+            run_smoke_tests() {
+              curl -sf https://humantree.vps.webdock.cloud/ > /dev/null || { echo "FAIL: frontend HTTPS"; return 1; }
+              echo "OK: frontend HTTPS"
+              curl -sf https://humantree.vps.webdock.cloud/api/v1/skill-trees/ > /dev/null || { echo "FAIL: backend HTTPS"; return 1; }
+              echo "OK: backend API HTTPS"
+              HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' http://humantree.vps.webdock.cloud/)
+              if [ "$HTTP_CODE" != "301" ]; then
+                echo "FAIL: HTTP redirect expected 301, got $HTTP_CODE"
+                return 1
+              fi
+              echo "OK: HTTP -> HTTPS redirect"
+            }
 
-            curl -sf https://humantree.vps.webdock.cloud/api/v1/skill-trees/ > /dev/null || { echo "FAIL: backend HTTPS"; exit 1; }
-            echo "OK: backend API HTTPS"
-
-            HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' http://humantree.vps.webdock.cloud/)
-            if [ "$HTTP_CODE" != "301" ]; then
-              echo "FAIL: HTTP redirect expected 301, got $HTTP_CODE"
+            if ! run_smoke_tests; then
+              echo "=== ROLLBACK: smoke tests failed, restoring previous images ==="
+              if [ -n "$PREV_BACKEND" ] && [ -n "$PREV_FRONTEND" ]; then
+                docker tag "$PREV_BACKEND" ghcr.io/davidgola/humantree-backend:latest
+                docker tag "$PREV_FRONTEND" ghcr.io/davidgola/humantree-frontend:latest
+                docker compose -f docker-compose.prod.yml up -d --force-recreate
+                echo "Rollback complete."
+              else
+                echo "No previous images available for rollback."
+              fi
               exit 1
             fi
-            echo "OK: HTTP -> HTTPS redirect"
 
             echo "=== All smoke tests passed ==="
+
+            # Pruner uniquement les images HumanTree orphelines (jamais d'autres projets)
+            docker image prune -f --filter "label=org.opencontainers.image.source=humantree"

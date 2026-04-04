@@ -8,6 +8,7 @@ RUN npm ci
 COPY . .
 RUN npx vite build
 FROM nginx:alpine
+LABEL org.opencontainers.image.source="humantree"
 RUN apk upgrade --no-cache
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
