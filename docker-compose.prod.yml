@@ -6,6 +6,8 @@ services:
       - "127.0.0.1:8000:8000"
     env_file:
       - .env
+    volumes:
+      - hf_cache:/app/.cache/huggingface
     environment:
       - ENVIRONMENT=production
       - VAULT_ADDR=http://vault:8200
@@ -143,3 +145,4 @@ volumes:
   vault_data:
   loki_data:
   tempo_data:
+  hf_cache:

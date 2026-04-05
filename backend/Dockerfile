@@ -5,9 +5,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir -r requirements.txt
 ENV HF_HOME=/app/.cache/huggingface
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('intfloat/multilingual-e5-small')"
 COPY . .
 RUN adduser --disabled-password --no-create-home appuser && \
+    mkdir -p /app/.cache/huggingface && \
     chown -R appuser:appuser /app/.cache
 USER appuser
 EXPOSE 8000
