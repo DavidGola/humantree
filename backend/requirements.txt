@@ -67,7 +67,7 @@ opentelemetry-instrumentation-sqlalchemy==0.61b0
 opentelemetry-proto==1.40.0
 opentelemetry-sdk==1.40.0
 opentelemetry-semantic-conventions==0.61b0
-opentelemetry-util-http==0.61b0
+opentelemetry-util-http==0.62b0
 packageurl-python==0.17.6
 packaging==26.0
 pgvector==0.3.6
