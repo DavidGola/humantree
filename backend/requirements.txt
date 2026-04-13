@@ -97,7 +97,7 @@ python-multipart==0.0.24
 PyYAML==6.0.3
 regex==2026.4.4
 requests==2.33.0
-rich==14.3.3
+rich==15.0.0
 rsa==4.9.1
 safetensors==0.7.0
 scikit-learn==1.8.0
