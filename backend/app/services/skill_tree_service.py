@@ -45,13 +45,7 @@ async def _safe_embed(tree_id: int) -> None:
 
 def _concat_skills_text(skills) -> str:
     """Concatenate skill names and descriptions into a single string for FTS."""
-    parts = []
-    for s in skills:
-        if s.description:
-            parts.append(f"{s.name} {s.description}")
-        else:
-            parts.append(s.name)
-    return " ".join(parts)
+    return " ".join(f"{s.name} {s.description}" if s.description else s.name for s in skills)
 
 
 def _build_search_vector(tree: SkillTree, skills_text: str = ""):

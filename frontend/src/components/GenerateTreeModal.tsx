@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Modal } from "./Modal";
 import { Button } from "./Button";
@@ -12,31 +12,68 @@ interface GenerateTreeModalProps {
   onClose: () => void;
 }
 
+const PHASE_LABELS: Record<string, string> = {
+  generating: "Génération de l'arbre...",
+  evaluating: "Évaluation de la qualité...",
+  improving: "Amélioration en cours...",
+};
+
 export default function GenerateTreeModal({ onClose }: GenerateTreeModalProps) {
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState("");
   const [provider, setProvider] = useState<string | undefined>(undefined);
   const [generated, setGenerated] = useState<GeneratedTree | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [phase, setPhase] = useState<string | null>(null);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const { data: keys = [] } = useQuery({
     queryKey: ["api-keys"],
     queryFn: apiKeyApi.list,
   });
 
-  const generateMutation = useMutation({
-    mutationFn: () => aiApi.generateTree(prompt, provider),
-    onSuccess: (data) => setGenerated(data),
-  });
+  const handleGenerate = async () => {
+    if (!prompt.trim()) return;
+    setIsGenerating(true);
+    setGenerateError(null);
+    setPhase("generating");
+
+    const abort = new AbortController();
+    abortRef.current = abort;
+
+    try {
+      await aiApi.generateTreeStream(
+        prompt,
+        provider,
+        (event) => {
+          if (event.type === "progress") {
+            setPhase(event.phase);
+          } else if (event.type === "done") {
+            setGenerated(event.data);
+          } else if (event.type === "error") {
+            setGenerateError(event.detail);
+          }
+        },
+        abort.signal,
+      );
+    } catch (e: unknown) {
+      if (!(e instanceof DOMException && e.name === "AbortError")) {
+        setGenerateError(getApiErrorMessage(e));
+      }
+    } finally {
+      setIsGenerating(false);
+      setPhase(null);
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: async (tree: GeneratedTree) => {
-      // 1. Créer l'arbre vide
       const created = await skillTreeApi.create(
         tree.name,
         tree.description,
         tree.tags
       );
-      // 2. Sauvegarder avec les skills (IDs négatifs gérés par le backend)
       await skillTreeApi.save(String(created.id), {
         ...created,
         skills: tree.skills,
@@ -189,23 +226,30 @@ export default function GenerateTreeModal({ onClose }: GenerateTreeModalProps) {
           </div>
         )}
 
-        <div className="flex gap-3 pt-2">
-          <Button
-            variant="primary"
-            onClick={() => generateMutation.mutate()}
-            disabled={generateMutation.isPending || !prompt.trim()}
-          >
-            {generateMutation.isPending ? "Génération en cours..." : "Générer"}
-          </Button>
-          <Button variant="secondary" onClick={onClose}>
-            Annuler
-          </Button>
+        <div className="space-y-2 pt-2">
+          <div className="flex gap-3">
+            <Button
+              variant="primary"
+              onClick={handleGenerate}
+              disabled={isGenerating || !prompt.trim()}
+            >
+              {isGenerating ? "En cours..." : "Générer"}
+            </Button>
+            <Button variant="secondary" onClick={onClose}>
+              Annuler
+            </Button>
+          </div>
+
+          {isGenerating && phase && (
+            <p className="text-xs text-primary-500 dark:text-primary-400 animate-pulse">
+              {PHASE_LABELS[phase] ?? "Traitement..."}
+            </p>
+          )}
+
+          {generateError && (
+            <p className="text-xs text-red-500">{generateError}</p>
+          )}
         </div>
-        {generateMutation.isError && (
-          <p className="text-xs text-red-500">
-            {getApiErrorMessage(generateMutation.error)}
-          </p>
-        )}
       </div>
     </Modal>
   );

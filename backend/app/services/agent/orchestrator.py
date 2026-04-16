@@ -212,6 +212,90 @@ async def run_tree_agent(
         )
 
 
+class _NoopSpan:
+    """No-op span for streaming context where OTel tracing is not needed."""
+
+    def set_attribute(self, *a, **kw): ...
+
+    def record_exception(self, *a, **kw): ...
+
+
+async def run_tree_agent_stream(
+    providers: dict[str, str],
+    provider: str,
+    prompt: str,
+    config: AgentConfig | None = None,
+):
+    """Stream skill tree generation as SSE events.
+
+    Expects pre-validated providers dict and primary provider.
+    Yields SSE-formatted strings:
+    - {"type": "progress", "phase": "generating|evaluating|improving", "attempt": N}
+    - {"type": "done", "data": {...}}
+    - {"type": "error", "detail": "..."}
+    """
+    import json
+
+    if config is None:
+        config = AgentConfig()
+
+    state = AgentState(provider_used=provider)
+    start_time = time.perf_counter()
+    noop = _NoopSpan()
+
+    def _sse(data: dict) -> str:
+        return f"data: {json.dumps(data)}\n\n"
+
+    try:
+        while state.phase != AgentPhase.DONE:
+            elapsed = time.perf_counter() - start_time
+            remaining = config.timeout_budget - elapsed
+
+            if remaining < 15.0 and state.tree_data is not None:
+                state.phase = AgentPhase.DONE
+                break
+
+            if state.phase == AgentPhase.GENERATE:
+                yield _sse({"type": "progress", "phase": "generating", "attempt": state.attempts + 1})
+                await _step_generate(state, providers, provider, prompt, config, noop)
+
+            elif state.phase == AgentPhase.EVALUATE:
+                yield _sse({"type": "progress", "phase": "evaluating"})
+                await _step_evaluate(state, providers, config, noop)
+
+            elif state.phase == AgentPhase.IMPROVE:
+                elapsed = time.perf_counter() - start_time
+                if config.timeout_budget - elapsed < 15.0:
+                    state.phase = AgentPhase.DONE
+                    break
+                yield _sse({"type": "progress", "phase": "improving"})
+                await _step_improve(state, providers, prompt, noop)
+
+        tree = state.best_tree or state.tree_data
+        quality = state.best_quality or state.quality
+        duration = time.perf_counter() - start_time
+
+        if tree is None:
+            yield _sse({"type": "error", "detail": "L'agent n'a pas pu générer un arbre valide."})
+            return
+
+        response = {**tree}
+        response["_metadata"] = {
+            "provider_used": state.provider_used,
+            "fallback_used": state.fallback_used,
+            "fallback_provider": state.fallback_provider,
+            "quality_score": quality.overall if quality else None,
+            "quality_feedback": quality.feedback if quality else None,
+            "attempts": state.attempts,
+            "agent_duration_seconds": round(duration, 3),
+        }
+        yield _sse({"type": "done", "data": response})
+
+    except Exception as e:
+        logger.error(f"run_tree_agent_stream error: {e}")
+        yield _sse({"type": "error", "detail": "Erreur lors de la génération de l'arbre."})
+
+
 async def _step_generate(
     state: AgentState,
     providers: dict[str, str],

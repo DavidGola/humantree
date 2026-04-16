@@ -210,6 +210,92 @@ async def _call_openai(
     )
 
 
+async def _stream_anthropic_text(
+    api_key: str,
+    prompt: str,
+    system_prompt: str = SYSTEM_PROMPT,
+    max_tokens: int = MAX_TOKENS_GENERATE,
+):
+    """Stream text chunks from Anthropic."""
+    import anthropic
+
+    client = anthropic.AsyncAnthropic(api_key=api_key)
+    async with client.messages.stream(
+        model=MODEL_ANTHROPIC,
+        max_tokens=max_tokens,
+        system=system_prompt,
+        messages=[{"role": "user", "content": prompt}],
+    ) as stream:
+        async for text in stream.text_stream:
+            yield text
+
+
+async def _stream_openai_text(
+    api_key: str,
+    prompt: str,
+    system_prompt: str = SYSTEM_PROMPT,
+    max_tokens: int = MAX_TOKENS_GENERATE,
+):
+    """Stream text chunks from OpenAI."""
+    from openai import AsyncOpenAI
+
+    client = AsyncOpenAI(api_key=api_key)
+    response = await client.chat.completions.create(
+        model=MODEL_OPENAI,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ],
+        max_tokens=max_tokens,
+        stream=True,
+    )
+    async for chunk in response:
+        delta = chunk.choices[0].delta.content
+        if delta:
+            yield delta
+
+
+async def _stream_google_text(
+    api_key: str,
+    prompt: str,
+    system_prompt: str = SYSTEM_PROMPT,
+    max_tokens: int = MAX_TOKENS_GENERATE,
+):
+    """Stream text chunks from Google Gemini."""
+    from google import genai
+
+    client = genai.Client(api_key=api_key)
+    stream = await client.aio.models.generate_content_stream(
+        model=MODEL_GOOGLE,
+        contents=prompt,
+        config={"system_instruction": system_prompt},
+    )
+    async for chunk in stream:
+        if chunk.text:
+            yield chunk.text
+
+
+async def _stream_provider_text(
+    provider: str,
+    api_key: str,
+    prompt: str,
+    system_prompt: str,
+    max_tokens: int = MAX_TOKENS_ENRICH,
+):
+    """Route to the correct provider streaming function."""
+    if provider == PROVIDER_ANTHROPIC:
+        async for chunk in _stream_anthropic_text(api_key, prompt, system_prompt, max_tokens):
+            yield chunk
+    elif provider == PROVIDER_OPENAI:
+        async for chunk in _stream_openai_text(api_key, prompt, system_prompt, max_tokens):
+            yield chunk
+    elif provider == PROVIDER_GOOGLE:
+        async for chunk in _stream_google_text(api_key, prompt, system_prompt, max_tokens):
+            yield chunk
+    else:
+        raise HTTPException(status_code=400, detail=f"Provider inconnu: {provider}")
+
+
 async def generate_skill_tree(db: AsyncSession, user_id: int, prompt: str, provider: str | None = None) -> dict:
     """Generate a skill tree using the agent orchestrator with quality evaluation and provider fallback."""
     from app.services.agent.orchestrator import run_tree_agent

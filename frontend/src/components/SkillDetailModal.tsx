@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Modal } from "./Modal";
 import { Button } from "./Button";
@@ -30,32 +30,56 @@ export const SkillDetailModal = ({
     skill.description || "",
   );
   const [isEnriching, setIsEnriching] = useState(false);
+  const [streamingContent, setStreamingContent] = useState<string | null>(null);
+  const accumulatedRef = useRef("");
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     setEditedName(skill.name);
     setEditedDescription(skill.description || "");
   }, [skill.id]);
 
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
+
   const handleEnrich = async () => {
     if (!editedName.trim()) return;
     setIsEnriching(true);
+    setStreamingContent("");
+    accumulatedRef.current = "";
+
+    const abort = new AbortController();
+    abortRef.current = abort;
+
     try {
-      const result = await aiApi.enrichSkill({
-        skillName: editedName,
-        treeName,
-        treeDescription,
-        currentDescription: editedDescription || undefined,
-      });
-      setEditedDescription(result.description);
+      await aiApi.enrichSkillStream(
+        {
+          skillName: editedName,
+          treeName,
+          treeDescription,
+          currentDescription: editedDescription || undefined,
+        },
+        (chunk) => {
+          accumulatedRef.current += chunk;
+          setStreamingContent(accumulatedRef.current);
+        },
+        abort.signal,
+      );
+      setEditedDescription(accumulatedRef.current);
     } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       const message =
-        err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { detail?: string } } }).response
-              ?.data?.detail
-          : undefined;
+        err instanceof Error
+          ? err.message
+          : (err as { response?: { data?: { detail?: string } } })?.response
+              ?.data?.detail;
       toast.error(message || "Erreur lors de l'enrichissement IA");
     } finally {
       setIsEnriching(false);
+      setStreamingContent(null);
     }
   };
 
@@ -125,14 +149,27 @@ export const SkillDetailModal = ({
           <p className="text-xs text-gray-400 dark:text-slate-500 mb-2 px-1">
             Texte, images, vidéos, liens...
           </p>
-          <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border-2 border-gray-100 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm">
-            <RichTextEditor
-              content={editedDescription}
-              onChange={setEditedDescription}
-              editable={isEditing}
-              placeholder="Décrivez cette compétence, ajoutez des ressources..."
-            />
-          </div>
+
+          {streamingContent !== null ? (
+            <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border-2 border-primary-200 dark:border-primary-700 bg-white dark:bg-slate-800 shadow-sm p-4 text-sm text-gray-800 dark:text-white [&_h3]:font-semibold [&_h3]:text-base [&_h3]:mt-4 [&_h3]:mb-1 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1">
+              {streamingContent ? (
+                <div dangerouslySetInnerHTML={{ __html: streamingContent }} />
+              ) : (
+                <span className="text-gray-400 dark:text-slate-500 animate-pulse">
+                  Génération...
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border-2 border-gray-100 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm">
+              <RichTextEditor
+                content={editedDescription}
+                onChange={setEditedDescription}
+                editable={isEditing}
+                placeholder="Décrivez cette compétence, ajoutez des ressources..."
+              />
+            </div>
+          )}
         </div>
 
         {/* Footer */}
