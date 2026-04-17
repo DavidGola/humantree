@@ -36,3 +36,13 @@ groups:
         annotations:
           summary: "Pool DB saturé ({{ $value }} connexions actives)"
           description: "Plus de 8 connexions DB actives depuis 2 minutes. Risque de dégradation."
+
+      # Espace disque VPS critique
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"} / node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"}) * 100 < 15
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Espace disque VPS < 15%"
+          description: "Il reste {{ printf \"%.1f\" $value }}% sur / — risque de saturation CI/CD."

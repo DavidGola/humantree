@@ -235,5 +235,35 @@ jobs:
 
             echo "=== All smoke tests passed ==="
 
-            # Pruner uniquement les images HumanTree orphelines (jamais d'autres projets)
-            docker image prune -f --filter "label=org.opencontainers.image.source=humantree"
+            # Conteneurs stoppés, réseaux orphelins, images dangling, cache build
+            docker system prune -f
+            docker builder prune -f --keep-storage 1GB
+
+            # Garder les 2 dernières images HumanTree locales (rollback), purger les plus anciennes
+            for repo in ghcr.io/davidgola/humantree-backend ghcr.io/davidgola/humantree-frontend; do
+              docker images "$repo" --format '{{.ID}} {{.CreatedAt}}' \
+                | sort -k2 -r | tail -n +3 | awk '{print $1}' \
+                | xargs -r docker rmi -f || true
+            done
+
+  cleanup-ghcr:
+    runs-on: ubuntu-latest
+    needs: deploy
+    permissions:
+      packages: write
+    steps:
+      - name: Delete old backend versions (keep 10)
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: 'humantree-backend'
+          package-type: 'container'
+          min-versions-to-keep: 10
+          ignore-versions: '^latest$'
+
+      - name: Delete old frontend versions (keep 10)
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: 'humantree-frontend'
+          package-type: 'container'
+          min-versions-to-keep: 10
+          ignore-versions: '^latest$'
