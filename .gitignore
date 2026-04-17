@@ -53,6 +53,9 @@ docs/courses/
 # Vault
 vault/init.sh
 
+# Generated configs (secrets résolus, jamais commiter)
+monitoring/alertmanager-resolved.yml
+
 # Local tests
 scripts/test-ci.sh
 scripts/lint.sh

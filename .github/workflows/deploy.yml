@@ -188,6 +188,10 @@ jobs:
             PREV_FRONTEND=$(docker inspect ghcr.io/davidgola/humantree-frontend:latest --format='{{.Id}}' 2>/dev/null || echo "")
 
             set -e
+            # Générer alertmanager.yml avec les secrets résolus
+            DISCORD_URL=$(grep -E '^DISCORD_WEBHOOK_URL=' .env | cut -d'=' -f2-)
+            sed "s|\${DISCORD_WEBHOOK_URL}|${DISCORD_URL}|g" monitoring/alertmanager.yml > monitoring/alertmanager-resolved.yml
+
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --force-recreate --pull always
 
