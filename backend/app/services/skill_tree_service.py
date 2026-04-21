@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 async def _safe_embed(tree_id: int) -> None:
-    """Fire-and-forget embedding generation in a separate session."""
+    """Background embedding generation using FastAPI BackgroundTasks."""
     if os.environ.get("ENVIRONMENT") == "test":
         return
     try:

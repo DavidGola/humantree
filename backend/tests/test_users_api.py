@@ -329,3 +329,128 @@ async def test_concurrent_register_same_username_returns_409(client):
 
     status_codes = sorted(r.status_code for r in responses)
     assert status_codes == [200, 409], f"Expected [200, 409], got {status_codes}"
+
+
+# ========== UPDATE USER PROFILE ==========
+
+
+@pytest.mark.asyncio
+async def test_update_username_already_taken_returns_409(client):
+    await register_user(client, username="alice", email="alice@example.com")
+    await register_user(client, username="bob", email="bob@example.com")
+    cookies = await auth_cookies(client, username="bob")
+    response = await client.patch(
+        "/api/v1/users/me/profile",
+        json={"username": "alice"},
+        cookies=cookies,
+    )
+    assert response.status_code == 409
+    assert "username" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_update_email_already_registered_returns_409(client):
+    await register_user(client, username="alice", email="alice@example.com")
+    await register_user(client, username="bob", email="bob@example.com")
+    cookies = await auth_cookies(client, username="bob")
+    response = await client.patch(
+        "/api/v1/users/me/profile",
+        json={"email": "alice@example.com"},
+        cookies=cookies,
+    )
+    assert response.status_code == 409
+    assert "email" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_update_own_username_same_value_ok(client):
+    await register_user(client, username="alice", email="alice@example.com")
+    cookies = await auth_cookies(client, username="alice")
+    response = await client.patch(
+        "/api/v1/users/me/profile",
+        json={"username": "alice"},
+        cookies=cookies,
+    )
+    assert response.status_code == 200
+    assert response.json()["username"] == "alice"
+
+
+@pytest.mark.asyncio
+async def test_update_own_email_same_value_ok(client):
+    await register_user(client, username="alice", email="alice@example.com")
+    cookies = await auth_cookies(client, username="alice")
+    response = await client.patch(
+        "/api/v1/users/me/profile",
+        json={"email": "alice@example.com"},
+        cookies=cookies,
+    )
+    assert response.status_code == 200
+    assert response.json()["email"] == "alice@example.com"
+
+
+@pytest.mark.asyncio
+async def test_update_bio_success(client):
+    await register_user(client, username="alice", email="alice@example.com")
+    cookies = await auth_cookies(client, username="alice")
+    response = await client.patch(
+        "/api/v1/users/me/profile",
+        json={"bio": "Hello, I am Alice"},
+        cookies=cookies,
+    )
+    assert response.status_code == 200
+    assert response.json()["bio"] == "Hello, I am Alice"
+
+
+@pytest.mark.asyncio
+async def test_update_password_success(client):
+    await register_user(client, username="alice", email="alice@example.com")
+    cookies = await auth_cookies(client, username="alice")
+    response = await client.patch(
+        "/api/v1/users/me/profile",
+        json={"password": "newpassword456"},
+        cookies=cookies,
+    )
+    assert response.status_code == 200
+
+    login_response = await client.post(
+        "/api/v1/users/login",
+        data={"username": "alice", "password": "newpassword456"},
+    )
+    assert login_response.status_code == 200
+
+
+# ========== CONCURRENT UPDATE ==========
+
+
+@pytest.mark.asyncio
+async def test_concurrent_update_same_email_returns_409(client):
+    await register_user(client, username="alice", email="alice@example.com")
+    await register_user(client, username="bob", email="bob@example.com")
+    await register_user(client, username="charlie", email="charlie@example.com")
+    cookies_bob = await auth_cookies(client, username="bob")
+    cookies_charlie = await auth_cookies(client, username="charlie")
+
+    responses = await asyncio.gather(
+        client.patch("/api/v1/users/me/profile", json={"email": "new@example.com"}, cookies=cookies_bob),
+        client.patch("/api/v1/users/me/profile", json={"email": "new@example.com"}, cookies=cookies_charlie),
+    )
+
+    status_codes = sorted(r.status_code for r in responses)
+    assert status_codes == [200, 409], f"Expected [200, 409], got {status_codes}"
+
+
+@pytest.mark.asyncio
+async def test_concurrent_update_same_username_returns_409(client):
+    await register_user(client, username="alice", email="alice@example.com")
+    await register_user(client, username="bob", email="bob@example.com")
+    await register_user(client, username="charlie", email="charlie@example.com")
+    cookies_bob = await auth_cookies(client, username="bob")
+    cookies_charlie = await auth_cookies(client, username="charlie")
+
+    responses = await asyncio.gather(
+        client.patch("/api/v1/users/me/profile", json={"username": "newuser"}, cookies=cookies_bob),
+        client.patch("/api/v1/users/me/profile", json={"username": "newuser"}, cookies=cookies_charlie),
+    )
+
+    status_codes = sorted(r.status_code for r in responses)
+    assert status_codes == [200, 409], f"Expected [200, 409], got {status_codes}"

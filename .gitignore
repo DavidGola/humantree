@@ -15,6 +15,9 @@ CLAUDE.md
 bonne_pratique*.md
 tasks/
 
+# Opencode files
+AGENTS.md
+
 # Docs personal notes
 cmd_doc
 SQL.md
@@ -23,6 +26,7 @@ TODO.md
 # Environment variables
 .env
 .secrets
+.env.local
 
 # Vault keys (NEVER commit)
 vault/.vault-keys.json

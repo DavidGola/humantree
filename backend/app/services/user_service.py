@@ -96,14 +96,8 @@ async def update_user(db: AsyncSession, user_id: int, data: UserUpdateSchema) ->
         return None
 
     if data.username is not None:
-        if await check_user_username(db, data.username):
-            raise HTTPException(status_code=409, detail="Username already taken")
         user.username = data.username
     if data.email is not None:
-        # Vérifier si le nouvel email existe déjà pour un autre utilisateur
-
-        if await check_user_email(db, data.email):
-            raise HTTPException(status_code=409, detail="Email already registered")
         user.email = data.email
     if data.password is not None:
         loop = asyncio.get_running_loop()
@@ -114,26 +108,17 @@ async def update_user(db: AsyncSession, user_id: int, data: UserUpdateSchema) ->
     if data.avatar_url is not None:
         user.avatar_url = data.avatar_url
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as e:
+        await db.rollback()
+        error_msg = str(e.orig).lower() if e.orig else str(e).lower()
+        if "username" in error_msg:
+            raise HTTPException(status_code=409, detail="Username already taken")
+        raise HTTPException(status_code=409, detail="Email already registered")
     await db.refresh(user)
 
     return UserSchema.model_validate(user)
-
-
-async def check_user_email(db: AsyncSession, email: str) -> bool:
-    """Vérifie si un email est conforme et s'il est déjà enregistré dans la base de données."""
-    stmt = select(User).where(User.email == email)
-    result = await db.execute(stmt)
-    existing_user = result.scalar_one_or_none()
-    return existing_user is not None
-
-
-async def check_user_username(db: AsyncSession, username: str) -> bool:
-    """Vérifie si un nom d'utilisateur est déjà enregistré dans la base de données."""
-    stmt = select(User).where(User.username == username)
-    result = await db.execute(stmt)
-    existing_user = result.scalar_one_or_none()
-    return existing_user is not None
 
 
 async def get_user_username(db: AsyncSession, user_id: int) -> str | None:
