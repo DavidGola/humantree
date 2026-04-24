@@ -69,7 +69,7 @@ opentelemetry-sdk==1.41.0
 opentelemetry-semantic-conventions==0.62b0
 opentelemetry-util-http==0.62b0
 packageurl-python==0.17.6
-packaging==26.0
+packaging==26.1
 pgvector==0.3.6
 pip-api==0.0.34
 pip-requirements-parser==32.0.1
