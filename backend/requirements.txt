@@ -118,7 +118,7 @@ tomli==2.4.1
 tomli_w==1.2.0
 # torch installed separately in Dockerfile (CPU-only build)
 tqdm==4.67.3
-transformers==5.6.0
+transformers==5.6.2
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 urllib3==2.6.3
