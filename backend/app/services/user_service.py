@@ -19,6 +19,7 @@ from app.schemas.user import (
     UserSchema,
     UserUpdateSchema,
 )
+from app.services._integrity import parse_integrity_error
 
 
 async def register_user(db: AsyncSession, user: UserCreateSchema) -> UserSchema:
@@ -35,10 +36,9 @@ async def register_user(db: AsyncSession, user: UserCreateSchema) -> UserSchema:
         await db.commit()
     except IntegrityError as e:
         await db.rollback()
-        error_msg = str(e.orig).lower() if e.orig else str(e).lower()
-        if "username" in error_msg:
-            raise HTTPException(status_code=409, detail="Username already taken")
-        raise HTTPException(status_code=409, detail="Email already registered")
+        msg = str(e.orig).lower() if e.orig else ""
+        detail = "Username already taken" if "username" in msg else "Email already registered"
+        raise parse_integrity_error(e, duplicate_detail=detail) from e
     await db.refresh(new_user)
 
     return UserSchema.model_validate(new_user)
@@ -112,10 +112,9 @@ async def update_user(db: AsyncSession, user_id: int, data: UserUpdateSchema) ->
         await db.commit()
     except IntegrityError as e:
         await db.rollback()
-        error_msg = str(e.orig).lower() if e.orig else str(e).lower()
-        if "username" in error_msg:
-            raise HTTPException(status_code=409, detail="Username already taken")
-        raise HTTPException(status_code=409, detail="Email already registered")
+        msg = str(e.orig).lower() if e.orig else ""
+        detail = "Username already taken" if "username" in msg else "Email already registered"
+        raise parse_integrity_error(e, duplicate_detail=detail) from e
     await db.refresh(user)
 
     return UserSchema.model_validate(user)

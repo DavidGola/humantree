@@ -18,7 +18,6 @@ export const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -29,7 +28,6 @@ export const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Close login modal on successful auth
   useEffect(() => {
     if (isAuthenticated && loginOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -56,26 +54,24 @@ export const Navbar = () => {
   const avatarLetter = username?.charAt(0).toUpperCase() ?? "?";
 
   const navLinkClass = (path: string) =>
-    `px-3 py-1.5 text-sm font-display font-semibold transition-colors duration-200 border-b-2 ${
+    `px-2 py-1 text-sm font-display font-medium transition-colors duration-150 ${
       location.pathname === path
-        ? "text-primary-600 dark:text-primary-400 border-primary-500"
-        : "text-gray-600 dark:text-slate-300 border-transparent hover:text-primary-600 dark:hover:text-primary-400"
+        ? "text-primary-700 dark:text-primary-400"
+        : "text-gray-500 dark:text-slate-400 hover:text-primary-700 dark:hover:text-primary-400"
     }`;
 
   return (<>
-    <nav className="relative z-50 backdrop-blur-md transition-colors duration-200" style={{ backgroundColor: 'var(--surface)', borderBottom: '1px solid var(--border-subtle)' }}>
-      <div className="container mx-auto flex items-center justify-between px-6 py-3">
-        {/* Logo */}
+    <nav className="border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+      <div className="container mx-auto flex items-center justify-between px-6 py-2.5">
         <button
           onClick={() => navigate("/")}
-          className="flex items-center gap-2 text-xl font-display font-bold text-gray-800 dark:text-white tracking-tight hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 shrink-0"
+          className="flex items-center gap-2 text-lg font-display font-bold text-gray-800 dark:text-white tracking-tight hover:text-primary-700 dark:hover:text-primary-400 transition-colors duration-150 shrink-0"
         >
-          <img src="/favicon.svg" alt="HumanTree" className="w-7 h-7" />
+          <img src="/favicon.svg" alt="HumanTree" className="w-6 h-6" />
           <span className="hidden sm:inline">HumanTree</span>
         </button>
 
-        {/* Navigation links */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-4">
           <button onClick={() => navigate("/")} className={navLinkClass("/")}>
             Arbres
           </button>
@@ -84,27 +80,33 @@ export const Navbar = () => {
           </button>
         </div>
 
-        {/* Right side */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Dark mode toggle */}
+        <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={toggleDarkMode}
-            className="w-9 h-9 rounded-full text-gray-600 dark:text-yellow-300 flex items-center justify-center text-sm transition-all duration-200" style={{ backgroundColor: 'var(--surface-hover)' }}
+            className="w-8 h-8 flex items-center justify-center text-sm text-gray-500 dark:text-slate-400 hover:text-primary-700 dark:hover:text-primary-400 transition-colors duration-150"
           >
-            {isDarkMode ? "☀" : "🌙"}
+            {isDarkMode ? (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <circle cx="12" cy="12" r="5" /><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+              </svg>
+            )}
           </button>
 
           {!isAuthenticated && (
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setLoginOpen(true)}
-                className="px-4 py-2 text-sm font-display font-semibold rounded-lg text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors duration-200"
+                className="px-3 py-1.5 text-sm font-display font-medium text-primary-700 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 transition-colors duration-150"
               >
                 Se connecter
               </button>
               <button
                 onClick={() => navigate("/register")}
-                className="px-4 py-2 text-sm font-display font-semibold rounded-lg bg-primary-600 hover:bg-primary-700 text-white transition-colors duration-200"
+                className="px-3 py-1.5 text-sm font-display font-semibold rounded-lg bg-primary-700 hover:bg-primary-800 text-white transition-colors duration-150"
               >
                 S'inscrire
               </button>
@@ -115,32 +117,32 @@ export const Navbar = () => {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white font-display font-bold text-sm flex items-center justify-center hover:shadow-lg hover:shadow-primary-500/25 transition-all duration-200"
+                className="w-8 h-8 rounded-full bg-primary-700 text-white font-display font-bold text-sm flex items-center justify-center hover:bg-primary-800 transition-colors duration-150"
               >
                 {avatarLetter}
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 rounded-xl surface-strong backdrop-blur-md py-1 z-[100] animate-fade-in-up">
-                  <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700">
-                    <p className="text-sm font-display font-semibold text-gray-800 dark:text-white truncate">{username}</p>
+                <div className="absolute right-0 mt-2 w-48 rounded-lg surface-strong py-1 z-[100]">
+                  <div className="px-4 py-2 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <p className="text-sm font-display font-medium text-gray-800 dark:text-white truncate">{username}</p>
                   </div>
                   <button
                     onClick={() => { navigate(`/user/${username}`); setDropdownOpen(false); }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-700 dark:hover:text-primary-400 transition-colors"
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-primary-700 dark:hover:text-primary-400 transition-colors"
                   >
                     Mon profil
                   </button>
                   <button
                     onClick={() => { setHelpOpen(true); setDropdownOpen(false); }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-700 dark:hover:text-primary-400 transition-colors"
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-primary-700 dark:hover:text-primary-400 transition-colors"
                   >
                     Aide
                   </button>
-                  <div className="border-t border-gray-100 dark:border-slate-700 mt-1">
+                  <div className="border-t mt-1" style={{ borderColor: 'var(--border-subtle)' }}>
                     <button
                       onClick={() => { logout(); setDropdownOpen(false); }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     >
                       Se déconnecter
                     </button>
@@ -153,7 +155,6 @@ export const Navbar = () => {
       </div>
     </nav>
 
-    {/* Login modal */}
     {loginOpen && (
       <Modal title="Se connecter" onClose={() => setLoginOpen(false)}>
         <form onSubmit={handleLogin} className="space-y-4">
@@ -164,7 +165,7 @@ export const Navbar = () => {
             <input
               id="login-email"
               type="text"
-              className="w-full py-2.5 px-3 text-sm rounded-lg surface-input text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+              className="w-full py-2 px-3 text-sm rounded-lg surface-input text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-colors duration-150"
               value={mailOrUsername}
               onChange={(e) => setMailOrUsername(e.target.value)}
               autoFocus
@@ -177,7 +178,7 @@ export const Navbar = () => {
             <input
               id="login-password"
               type="password"
-              className="w-full py-2.5 px-3 text-sm rounded-lg surface-input text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+              className="w-full py-2 px-3 text-sm rounded-lg surface-input text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-colors duration-150"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -185,7 +186,7 @@ export const Navbar = () => {
           <button
             type="submit"
             disabled={isLoggingIn}
-            className="w-full py-2.5 text-sm font-display font-semibold rounded-lg bg-primary-600 hover:bg-primary-700 text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-2 text-sm font-display font-semibold rounded-lg bg-primary-700 hover:bg-primary-800 text-white transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoggingIn ? "Connexion..." : "Se connecter"}
           </button>
@@ -194,7 +195,7 @@ export const Navbar = () => {
             <button
               type="button"
               onClick={() => { setLoginOpen(false); navigate("/register"); }}
-              className="text-primary-600 dark:text-primary-400 hover:underline font-medium"
+              className="text-primary-700 dark:text-primary-400 hover:underline font-medium"
             >
               S'inscrire
             </button>

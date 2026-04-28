@@ -1,11 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="2 1 28 29">
-  <!-- Smooth connections (arrive vertically into node tips) -->
-  <path d="M 16,13 C 16,15.5 8,17.5 8,20" stroke="#a78bfa" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <path d="M 16,13 C 16,15.5 24,17.5 24,20" stroke="#a78bfa" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <!-- Parent losange -->
-  <polygon points="16,3 21,8 16,13 11,8" fill="#c4b5fd" stroke="#a78bfa" stroke-width="1" stroke-linejoin="round"/>
-  <!-- Left child -->
-  <polygon points="8,20 12,24 8,28 4,24" fill="#ddd6fe" stroke="#c4b5fd" stroke-width="0.8" stroke-linejoin="round"/>
-  <!-- Right child -->
-  <polygon points="24,20 28,24 24,28 20,24" fill="#ddd6fe" stroke="#c4b5fd" stroke-width="0.8" stroke-linejoin="round"/>
+  <path d="M 16,14 C 16,16 8,18 8,21" stroke="#2d6a4f" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M 16,14 C 16,16 24,18 24,21" stroke="#2d6a4f" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <circle cx="16" cy="8" r="5" fill="#40916c"/>
+  <circle cx="8" cy="24" r="4" fill="#52b788"/>
+  <circle cx="24" cy="24" r="4" fill="#52b788"/>
+  <path d="M 19,5 C 20,3 22,3 22,5 C 22,7 19,7 19,5 Z" fill="#86efac"/>
 </svg>

@@ -51,7 +51,7 @@ export default function ApiKeySettings() {
           return (
             <div
               key={id}
-              className={`rounded-xl border transition-colors duration-200 overflow-hidden ${
+              className={`rounded-lg border transition-colors duration-150 overflow-hidden ${
                 isConfigured
                   ? "border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/30 dark:bg-emerald-950/20"
                   : "surface-card"
@@ -128,7 +128,7 @@ export default function ApiKeySettings() {
                     }
                     placeholder="sk-..."
                     autoFocus
-                    className="flex-1 px-3 py-2 text-sm rounded-lg surface-input text-gray-800 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    className="flex-1 px-3 py-2 text-sm rounded-lg surface-input text-gray-800 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
                   />
                   <Button
                     variant="primary"

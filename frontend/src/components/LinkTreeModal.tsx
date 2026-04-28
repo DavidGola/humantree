@@ -39,7 +39,7 @@ export function LinkTreeModal({
         placeholder="Rechercher un arbre..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="w-full px-3 py-2.5 text-sm rounded-lg mb-4 surface-input focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
+        className="w-full px-3 py-2.5 text-sm rounded-lg mb-4 surface-input focus:outline-none focus:ring-2 focus:ring-primary-600 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
       />
       <div className="overflow-y-auto flex-1 space-y-2">
         {loading ? (

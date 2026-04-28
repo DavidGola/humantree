@@ -22,6 +22,7 @@ AGENTS.md
 cmd_doc
 SQL.md
 TODO.md
+mockup*
 
 # Environment variables
 .env
@@ -63,3 +64,6 @@ monitoring/alertmanager-resolved.yml
 # Local tests
 scripts/test-ci.sh
 scripts/lint.sh
+
+# Images
+images/

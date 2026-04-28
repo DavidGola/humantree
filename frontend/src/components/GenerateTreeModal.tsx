@@ -118,7 +118,7 @@ export default function GenerateTreeModal({ onClose }: GenerateTreeModalProps) {
                 {generated.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="px-2 py-0.5 text-xs rounded-full bg-primary-100/60 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300"
+                    className="px-2 py-0.5 text-xs rounded border border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-400"
                   >
                     {tag}
                   </span>
@@ -193,7 +193,7 @@ export default function GenerateTreeModal({ onClose }: GenerateTreeModalProps) {
             maxLength={500}
             rows={3}
             placeholder="Ex: Apprendre le développement web frontend avec React..."
-            className="w-full px-3 py-2.5 text-sm rounded-lg surface-input focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
+            className="w-full px-3 py-2.5 text-sm rounded-lg surface-input focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none resize-none text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
           />
           <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
             {prompt.length}/500
@@ -202,7 +202,7 @@ export default function GenerateTreeModal({ onClose }: GenerateTreeModalProps) {
 
         {keys.length > 1 && (
           <div>
-            <label className="block text-xs font-display font-semibold text-gray-500 dark:text-slate-400 mb-1">
+            <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">
               Provider
             </label>
             <select
@@ -210,7 +210,7 @@ export default function GenerateTreeModal({ onClose }: GenerateTreeModalProps) {
               onChange={(e) =>
                 setProvider(e.target.value || undefined)
               }
-              className="w-full px-3 py-2 text-sm rounded-lg surface-input text-gray-800 dark:text-white outline-none"
+              className="w-full px-3 py-2 text-sm rounded-lg surface-input text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary-600"
             >
               <option value="">Auto (premier configuré)</option>
               {keys.map((k) => (

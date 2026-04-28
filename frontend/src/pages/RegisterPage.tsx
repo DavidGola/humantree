@@ -114,79 +114,96 @@ function RegisterPage() {
   }, [isAuthenticated, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="max-w-md w-full surface-strong backdrop-blur-md p-8 rounded-xl">
-        <h2 className="text-2xl font-display font-bold mb-6 text-gray-900 dark:text-white">
-          Créer un compte
-        </h2>
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <label
-              className="block text-sm font-display font-semibold mb-1.5 text-gray-700 dark:text-slate-300"
-              htmlFor="username"
-            >
-              Nom d'utilisateur
-            </label>
-            <input
-              id="username"
-              type="text"
-              className={`w-full px-3 py-2.5 rounded-lg surface-input text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 ${errors.username ? "!border-red-500" : ""}`}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
+    <div className="min-h-screen flex">
+      <div className="hidden lg:flex lg:w-1/2 bg-primary-700 flex-col items-center justify-center p-12">
+        <img src="/favicon.svg" alt="HumanTree" className="w-20 h-20 mb-6" />
+        <h1 className="text-3xl font-display font-bold text-white mb-3">
+          HumanTree
+        </h1>
+        <p className="text-primary-200 text-center max-w-xs leading-relaxed">
+          Visualisez vos compétences sous forme d'arbres interactifs et suivez votre progression.
+        </p>
+      </div>
+
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="max-w-sm w-full">
+          <div className="lg:hidden flex items-center gap-2 mb-8 justify-center">
+            <img src="/favicon.svg" alt="HumanTree" className="w-8 h-8" />
+            <span className="text-xl font-display font-bold text-gray-800 dark:text-white">HumanTree</span>
           </div>
-          <div>
-            <label
-              className="block text-sm font-display font-semibold mb-1.5 text-gray-700 dark:text-slate-300"
-              htmlFor="email"
+
+          <h2 className="text-2xl font-display font-bold mb-6 text-gray-900 dark:text-white">
+            Créer un compte
+          </h2>
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <div>
+              <label
+                className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300"
+                htmlFor="username"
+              >
+                Nom d'utilisateur
+              </label>
+              <input
+                id="username"
+                type="text"
+                className={`w-full px-3 py-2 rounded-lg surface-input text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-colors duration-150 ${errors.username ? "!border-red-500" : ""}`}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
+            <div>
+              <label
+                className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300"
+                htmlFor="email"
+              >
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                className={`w-full px-3 py-2 rounded-lg surface-input text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-colors duration-150 ${errors.email ? "!border-red-500" : ""}`}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <label
+                className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300"
+                htmlFor="password"
+              >
+                Mot de passe
+              </label>
+              <input
+                id="password"
+                type="password"
+                className={`w-full px-3 py-2 rounded-lg surface-input text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-colors duration-150 ${errors.password ? "!border-red-500" : ""}`}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            <div>
+              <label
+                className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300"
+                htmlFor="confirmPassword"
+              >
+                Confirmer le mot de passe
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                className={`w-full px-3 py-2 rounded-lg surface-input text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-colors duration-150 ${errors.confirmPassword ? "!border-red-500" : ""}`}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full py-2.5 px-4 bg-primary-700 hover:bg-primary-800 text-white font-display font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 transition-colors duration-150"
             >
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              className={`w-full px-3 py-2.5 rounded-lg surface-input text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 ${errors.email ? "!border-red-500" : ""}`}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div>
-            <label
-              className="block text-sm font-display font-semibold mb-1.5 text-gray-700 dark:text-slate-300"
-              htmlFor="password"
-            >
-              Mot de passe
-            </label>
-            <input
-              id="password"
-              type="password"
-              className={`w-full px-3 py-2.5 rounded-lg surface-input text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 ${errors.password ? "!border-red-500" : ""}`}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          <div>
-            <label
-              className="block text-sm font-display font-semibold mb-1.5 text-gray-700 dark:text-slate-300"
-              htmlFor="confirmPassword"
-            >
-              Confirmer le mot de passe
-            </label>
-            <input
-              id="confirmPassword"
-              type="password"
-              className={`w-full px-3 py-2.5 rounded-lg surface-input text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 ${errors.confirmPassword ? "!border-red-500" : ""}`}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full py-2.5 px-4 bg-primary-600 hover:bg-primary-700 text-white font-display font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all duration-200"
-          >
-            S'inscrire
-          </button>
-        </form>
+              S'inscrire
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

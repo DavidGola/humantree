@@ -37,7 +37,7 @@ export default function ProfileEditForm({
           onChange={(e) => setBio(e.target.value)}
           maxLength={500}
           rows={3}
-          className="w-full px-3 py-2.5 text-sm rounded-lg surface-input focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
+          className="w-full px-3 py-2.5 text-sm rounded-lg surface-input focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none resize-none text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
           placeholder="Parlez de vous..."
         />
       </div>

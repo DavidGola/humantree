@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
 import { getApiErrorMessage } from "../utils/apiErrors";
@@ -8,6 +7,7 @@ import { useFavorites } from "../hooks/useFavorites";
 
 import { Modal } from "../components/Modal";
 import { Button } from "../components/Button";
+import { TreeCard } from "../components/TreeCard";
 import GenerateTreeModal from "../components/GenerateTreeModal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { skillTreeApi } from "../api/skillTreeApi";
@@ -46,6 +46,8 @@ function SkillTreeListPage() {
 
   const queryClient = useQueryClient();
 
+  const featuredTrees = useMemo(() => skillTrees.slice(0, 3), [skillTrees]);
+
   const filteredTrees = useMemo(() => {
     const raw = searchQuery.toLowerCase().trim();
     if (!raw) return skillTrees;
@@ -66,6 +68,19 @@ function SkillTreeListPage() {
         t.tags?.some((tag) => tag.toLowerCase().includes(query)),
     );
   }, [skillTrees, searchQuery]);
+
+  const popularTags = useMemo(() => {
+    const tagCounts = new Map<string, number>();
+    skillTrees.forEach((t) =>
+      t.tags?.forEach((tag) => {
+        tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+      }),
+    );
+    return [...tagCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([tag]) => tag);
+  }, [skillTrees]);
 
   const parseTags = (input: string): string[] => {
     return input
@@ -119,182 +134,249 @@ function SkillTreeListPage() {
       });
   };
 
-  const tabClasses = (tab: Tab) =>
-    `px-6 py-4 text-sm font-display font-semibold transition-all duration-200 relative ${
+  const handleTagClick = (tag: string) => {
+    setActiveTag(tag);
+    setActiveTab("all");
+    setSearchQuery("");
+  };
+
+  const navTabClass = (tab: Tab) =>
+    `relative px-4 py-2.5 text-sm font-display font-medium transition-colors duration-150 ${
       activeTab === tab
-        ? "text-primary-600 dark:text-primary-400 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary-600 dark:after:bg-primary-400"
-        : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/50"
+        ? "text-primary-700 dark:text-primary-400"
+        : "text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300"
     }`;
 
   return (
-    <div className="min-h-screen p-8">
-      {/* Search bar */}
-      <div className="max-w-xl mx-auto mb-6">
-        <div className="relative">
-          <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Rechercher un arbre de compétences..."
-            className="w-full py-2.5 pl-10 pr-4 text-sm rounded-xl surface-input text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
-          />
-        </div>
-      </div>
+    <div className="min-h-screen">
+      <section className="hero-gradient relative overflow-hidden">
+        <div className="relative max-w-6xl mx-auto px-6 pt-16 pb-14 text-center">
+          <h1 className="font-display font-bold text-3xl md:text-4xl lg:text-5xl tracking-tight text-gray-900 dark:text-white">
+            Explorez des arbres<br className="hidden sm:block" /> de{" "}
+            <span className="text-primary-500">compétences</span>
+          </h1>
+          <p className="mt-4 text-base md:text-lg text-gray-500 dark:text-slate-400 max-w-xl mx-auto">
+            Visualisez vos parcours d'apprentissage comme jamais. Créez, partagez et progressez.
+          </p>
 
-      {/* Tag filter actif */}
-      {activeTag && (
-        <div className="flex justify-center mb-4">
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
-            #{activeTag}
-            <button
-              onClick={() => setActiveTag(null)}
-              className="ml-1 hover:text-primary-900 dark:hover:text-primary-100"
-              aria-label="Retirer le filtre"
-            >
-              &times;
-            </button>
-          </span>
+          <div className="mt-7 max-w-lg mx-auto">
+            <div className="relative group">
+              <svg
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-slate-500 transition-colors group-focus-within:text-primary-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Rechercher un arbre, un sujet, un tag..."
+                className="w-full py-3 pl-12 pr-5 text-sm rounded-xl surface-input focus:outline-none focus:ring-2 focus:ring-primary-600/50 focus:border-primary-500 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 transition-all duration-200"
+              />
+            </div>
+
+            {activeTag && (
+              <div className="mt-3 flex justify-center">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium border border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-400">
+                  #{activeTag}
+                  <button
+                    onClick={() => setActiveTag(null)}
+                    className="ml-1 hover:text-primary-900 dark:hover:text-primary-200"
+                    aria-label="Retirer le filtre"
+                  >
+                    &times;
+                  </button>
+                </span>
+              </div>
+            )}
+
+            {popularTags.length > 0 && !activeTag && !searchQuery && (
+              <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
+                <span className="text-xs text-gray-400 dark:text-slate-500">Populaire :</span>
+                {popularTags.map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => handleTagClick(tag)}
+                    className="px-2.5 py-1 rounded-md text-xs font-medium border border-primary-200 dark:border-primary-800/60 text-primary-700 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
+      </section>
+
+      {activeTab === "all" && featuredTrees.length > 0 && !searchQuery && !activeTag && (
+        <section className="max-w-6xl mx-auto px-6 pt-10 pb-2">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+                </svg>
+              </div>
+              <h2 className="font-display font-semibold text-xl text-gray-800 dark:text-white">
+                Tendances
+              </h2>
+            </div>
+            <button
+              onClick={() => setActiveTab("trending")}
+              className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
+            >
+              Voir tout &rarr;
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {featuredTrees.slice(0, 3).map((tree) => (
+              <TreeCard
+                key={tree.id}
+                id={tree.id}
+                name={tree.name}
+                description={tree.description}
+                creatorUsername={tree.creator_username}
+                tags={tree.tags || []}
+                variant="featured"
+                isFavorited={favoriteTrees.includes(tree.id)}
+                onFavorite={handleFavorite}
+                onTagClick={handleTagClick}
+              />
+            ))}
+          </div>
+        </section>
       )}
 
-      <nav className="mb-8 flex justify-center border-b border-gray-200 dark:border-slate-700">
-        <button className={tabClasses("all")} onClick={() => setActiveTab("all")}>
-          Tous les arbres
-        </button>
-        <button className={tabClasses("trending")} onClick={() => setActiveTab("trending")}>
-          Tendances
-        </button>
-        {isAuthenticated && (
-          <>
-            <button className={tabClasses("myTrees")} onClick={() => setActiveTab("myTrees")}>
-              Mes arbres
-            </button>
-            <button className={tabClasses("myFavoriteTrees")} onClick={() => setActiveTab("myFavoriteTrees")}>
-              Mes favoris
-            </button>
-          </>
-        )}
-      </nav>
+      <section className="max-w-6xl mx-auto px-6 pt-8 pb-24">
+        <nav
+          className="flex gap-1 border-b mb-6"
+          style={{ borderColor: "var(--border-subtle)" }}
+        >
+          <button
+            className={`${navTabClass("all")} after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-sm ${
+              activeTab === "all"
+                ? "after:bg-primary-700 dark:after:bg-primary-400"
+                : ""
+            }`}
+            onClick={() => setActiveTab("all")}
+          >
+            Tous
+          </button>
+          <button
+            className={`${navTabClass("trending")} after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-sm ${
+              activeTab === "trending"
+                ? "after:bg-primary-700 dark:after:bg-primary-400"
+                : ""
+            }`}
+            onClick={() => setActiveTab("trending")}
+          >
+            Tendances
+          </button>
+          {isAuthenticated && (
+            <>
+              <button
+                className={`${navTabClass("myTrees")} after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-sm ${
+                  activeTab === "myTrees"
+                    ? "after:bg-primary-700 dark:after:bg-primary-400"
+                    : ""
+                }`}
+                onClick={() => setActiveTab("myTrees")}
+              >
+                Mes arbres
+              </button>
+              <button
+                className={`${navTabClass("myFavoriteTrees")} after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-sm ${
+                  activeTab === "myFavoriteTrees"
+                    ? "after:bg-primary-700 dark:after:bg-primary-400"
+                    : ""
+                }`}
+                onClick={() => setActiveTab("myFavoriteTrees")}
+              >
+                Favoris
+              </button>
+            </>
+          )}
+        </nav>
 
-      <div className="max-w-7xl mx-auto">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="w-6 h-6 border-3 border-primary-600 border-t-transparent rounded-full animate-spin" />
-            <span className="ml-3 text-gray-500 dark:text-slate-400">
+            <div className="w-5 h-5 border-2 border-primary-700 border-t-transparent rounded-full animate-spin" />
+            <span className="ml-3 text-sm text-gray-400 dark:text-slate-500">
               Chargement...
             </span>
           </div>
         ) : filteredTrees.length === 0 ? (
-          <p className="text-center py-12 text-gray-500 dark:text-slate-400">
+          <p className="text-center py-12 text-sm text-gray-400 dark:text-slate-500">
             {searchQuery.trim()
               ? "Aucun résultat pour cette recherche."
               : "Aucun arbre de compétences trouvé."}
           </p>
         ) : (
-          <div className="space-y-3">
-            {filteredTrees.map((tree, index) => (
-              <Link
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {filteredTrees.map((tree) => (
+              <TreeCard
                 key={tree.id}
-                to={`/tree/${tree.id}`}
-                className="group flex items-stretch rounded-xl overflow-hidden surface-card hover:-translate-y-0.5 transition-all duration-300 animate-fade-in-up"
-                style={{ animationDelay: `${index * 40}ms` }}
-              >
-                {/* Accent bar */}
-                <div className="w-1 shrink-0 bg-gradient-to-b from-primary-400 to-primary-600 group-hover:w-1.5 transition-all duration-300" />
-
-                {/* Content */}
-                <div className="flex-1 flex items-center gap-4 px-5 py-4 min-w-0">
-                  {/* Title + description */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-base font-display font-semibold text-gray-800 dark:text-white truncate group-hover:text-primary-700 dark:group-hover:text-primary-300 transition-colors">
-                        {tree.name}
-                      </h2>
-                      <span className="text-xs text-gray-400 dark:text-slate-600 shrink-0">
-                        par {tree.creator_username}
-                      </span>
-                    </div>
-                    {tree.description && (
-                      <p className="mt-0.5 text-sm text-gray-500 dark:text-slate-400 truncate">
-                        {tree.description}
-                      </p>
-                    )}
-                    {tree.tags && tree.tags.length > 0 && (
-                      <div className="mt-1.5 flex flex-wrap gap-1">
-                        {tree.tags.slice(0, 5).map((tag) => (
-                          <button
-                            key={tag}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setActiveTag(tag);
-                              setActiveTab("all");
-                            }}
-                            className="px-1.5 py-0.5 text-[11px] rounded bg-primary-100/60 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 hover:bg-primary-200 dark:hover:bg-primary-900/40 transition-colors"
-                          >
-                            #{tag}
-                          </button>
-                        ))}
-                        {tree.tags.length > 5 && (
-                          <span className="px-1.5 py-0.5 text-[11px] text-gray-400 dark:text-slate-500">
-                            +{tree.tags.length - 5}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Favorite + arrow */}
-                  <div className="flex items-center gap-3 shrink-0">
-                    <button
-                      className={`text-3xl transition-all duration-200 hover:scale-125 ${
-                        favoriteTrees.includes(tree.id)
-                          ? "text-amber-400 hover:text-amber-500 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]"
-                          : "text-gray-800/30 dark:text-slate-300/30 hover:text-amber-400 dark:hover:text-amber-400"
-                      }`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleFavorite(tree.id);
-                      }}
-                      aria-label={
-                        favoriteTrees.includes(tree.id)
-                          ? "Retirer des favoris"
-                          : "Ajouter aux favoris"
-                      }
-                    >
-                      {favoriteTrees.includes(tree.id) ? "\u2605" : "\u2606"}
-                    </button>
-                    <svg className="w-4 h-4 text-gray-300 dark:text-slate-600 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </div>
-              </Link>
+                id={tree.id}
+                name={tree.name}
+                description={tree.description}
+                creatorUsername={tree.creator_username}
+                tags={tree.tags || []}
+                variant="compact"
+                isFavorited={favoriteTrees.includes(tree.id)}
+                onFavorite={handleFavorite}
+                onTagClick={handleTagClick}
+              />
             ))}
           </div>
         )}
-      </div>
+      </section>
 
-      {/* FAB */}
       {isAuthenticated && (
-        <div className="fixed bottom-8 right-8 z-40 flex flex-col items-end gap-3">
+        <div className="fixed bottom-8 right-8 z-40 flex flex-col items-end gap-2">
           {fabOpen && (
-            <div className="flex flex-col gap-2 animate-fade-in-up">
+            <div className="flex flex-col gap-1.5">
               <button
-                onClick={() => { setIsModalCreateOpen(true); setFabOpen(false); }}
-                className="px-4 py-2.5 text-sm font-display font-semibold rounded-xl surface-strong text-primary-700 dark:text-primary-300 transition-all duration-200 whitespace-nowrap"
+                onClick={() => {
+                  setIsModalCreateOpen(true);
+                  setFabOpen(false);
+                }}
+                className="px-4 py-2 text-sm font-display font-medium rounded-lg surface-strong text-primary-700 dark:text-primary-400 transition-colors duration-150 whitespace-nowrap"
               >
                 Créer manuellement
               </button>
               <button
-                onClick={() => { setIsAIModalOpen(true); setFabOpen(false); }}
-                className="px-4 py-2.5 text-sm font-display font-semibold rounded-xl surface-strong text-primary-700 dark:text-primary-300 transition-all duration-200 whitespace-nowrap flex items-center gap-2"
+                onClick={() => {
+                  setIsAIModalOpen(true);
+                  setFabOpen(false);
+                }}
+                className="px-4 py-2 text-sm font-display font-medium rounded-lg surface-strong text-primary-700 dark:text-primary-400 transition-colors duration-150 whitespace-nowrap flex items-center gap-2"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
                 </svg>
                 Générer par IA
               </button>
@@ -302,21 +384,19 @@ function SkillTreeListPage() {
           )}
           <button
             onClick={() => setFabOpen(!fabOpen)}
-            className={`w-14 h-14 rounded-full bg-primary-600 hover:bg-primary-700 text-white text-3xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center leading-none ${fabOpen ? "rotate-45" : ""}`}
+            className={`w-14 h-14 rounded-2xl bg-primary-700 hover:bg-primary-800 text-white text-2xl transition-all duration-200 flex items-center justify-center shadow-lg shadow-primary-700/25 hover:shadow-primary-700/40 hover:scale-105 active:scale-95 ${
+              fabOpen ? "rotate-45" : ""
+            }`}
           >
             +
           </button>
         </div>
       )}
 
-      {/* Modal IA */}
-      {isAIModalOpen && (
-        <GenerateTreeModal onClose={() => setIsAIModalOpen(false)} />
-      )}
-      {/* Modal pour créer un nouvel arbre de compétences */}
+      {isAIModalOpen && <GenerateTreeModal onClose={() => setIsAIModalOpen(false)} />}
       {isModalCreateOpen && (
         <Modal
-          title="Créer un nouvel arbre de compétences"
+          title="Créer un nouvel arbre"
           onClose={() => {
             setIsModalCreateOpen(false);
             setNewTreeName("");
@@ -326,10 +406,10 @@ function SkillTreeListPage() {
             setTagsError("");
           }}
         >
-          <form className="space-y-5" onSubmit={handleCreateTree}>
+          <form className="space-y-4" onSubmit={handleCreateTree}>
             <div>
               <label
-                className="block text-sm font-display font-semibold mb-1.5 text-gray-700 dark:text-slate-300"
+                className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300"
                 htmlFor="name"
               >
                 Nom
@@ -339,7 +419,7 @@ function SkillTreeListPage() {
                 type="text"
                 maxLength={100}
                 placeholder="Nom de l'arbre de compétences"
-                className={`w-full py-2.5 px-3 text-sm rounded-lg surface-input focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 ${
+                className={`w-full py-2 px-3 text-sm rounded-lg surface-input focus:outline-none focus:ring-2 focus:ring-primary-600 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 ${
                   nameError ? "!border-red-500" : ""
                 }`}
                 value={newTreeName}
@@ -348,21 +428,19 @@ function SkillTreeListPage() {
                   if (nameError) setNameError("");
                 }}
               />
-              {nameError && (
-                <p className="mt-1 text-sm text-red-500">{nameError}</p>
-              )}
+              {nameError && <p className="mt-1 text-sm text-red-500">{nameError}</p>}
             </div>
             <div>
               <label
-                className="block text-sm font-display font-semibold mb-1.5 text-gray-700 dark:text-slate-300"
+                className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300"
                 htmlFor="description"
               >
                 Description
               </label>
               <textarea
                 id="description"
-                placeholder="Description de l'arbre de compétences (optionnel)"
-                className="w-full py-2.5 px-3 text-sm rounded-lg surface-input focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 resize-none"
+                placeholder="Description (optionnel)"
+                className="w-full py-2 px-3 text-sm rounded-lg surface-input focus:outline-none focus:ring-2 focus:ring-primary-600 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 resize-none"
                 rows={3}
                 value={newTreeDescription}
                 onChange={(e) => setNewTreeDescription(e.target.value)}
@@ -370,7 +448,7 @@ function SkillTreeListPage() {
             </div>
             <div>
               <label
-                className="block text-sm font-display font-semibold mb-1.5 text-gray-700 dark:text-slate-300"
+                className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300"
                 htmlFor="tags"
               >
                 Tags
@@ -379,7 +457,7 @@ function SkillTreeListPage() {
                 id="tags"
                 type="text"
                 placeholder="python, web, api (séparés par des virgules, max 10)"
-                className={`w-full py-2.5 px-3 text-sm rounded-lg surface-input focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 ${
+                className={`w-full py-2 px-3 text-sm rounded-lg surface-input focus:outline-none focus:ring-2 focus:ring-primary-600 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 ${
                   tagsError ? "!border-red-500" : ""
                 }`}
                 value={newTreeTags}
@@ -388,15 +466,10 @@ function SkillTreeListPage() {
                   if (tagsError) setTagsError("");
                 }}
               />
-              {tagsError && (
-                <p className="mt-1 text-sm text-red-500">{tagsError}</p>
-              )}
+              {tagsError && <p className="mt-1 text-sm text-red-500">{tagsError}</p>}
             </div>
-            <div className="flex justify-end gap-3 pt-2">
-              <Button
-                variant="secondary"
-                onClick={() => setIsModalCreateOpen(false)}
-              >
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => setIsModalCreateOpen(false)}>
                 Annuler
               </Button>
               <Button variant="primary" type="submit" disabled={isCreating}>

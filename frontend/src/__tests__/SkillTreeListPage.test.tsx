@@ -3,7 +3,6 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-// Mock dependencies
 vi.mock("../contexts/AuthContext", () => ({
   useAuth: () => ({ isAuthenticated: false, username: "", login: vi.fn(), logout: vi.fn() }),
 }));
@@ -53,65 +52,65 @@ describe("SkillTreeListPage - Recherche", () => {
   it("affiche la barre de recherche", async () => {
     renderPage();
     expect(
-      screen.getByPlaceholderText("Rechercher un arbre de compétences..."),
+      screen.getByPlaceholderText("Rechercher un arbre, un sujet, un tag..."),
     ).toBeDefined();
   });
 
   it("affiche tous les arbres par défaut", async () => {
     renderPage();
-    expect(await screen.findByText("JavaScript")).toBeDefined();
-    expect(screen.getByText("Python")).toBeDefined();
-    expect(screen.getByText("DevOps")).toBeDefined();
+    expect((await screen.findAllByText("JavaScript")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Python").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("DevOps").length).toBeGreaterThan(0);
   });
 
   it("filtre par nom", async () => {
     renderPage();
-    await screen.findByText("JavaScript");
+    await screen.findAllByText("JavaScript");
 
     const searchInput = screen.getByPlaceholderText(
-      "Rechercher un arbre de compétences...",
+      "Rechercher un arbre, un sujet, un tag...",
     );
     fireEvent.change(searchInput, { target: { value: "python" } });
 
-    expect(screen.getByText("Python")).toBeDefined();
+    expect(screen.getAllByText("Python").length).toBeGreaterThan(0);
     expect(screen.queryByText("JavaScript")).toBeNull();
     expect(screen.queryByText("DevOps")).toBeNull();
   });
 
   it("filtre par description", async () => {
     renderPage();
-    await screen.findByText("JavaScript");
+    await screen.findAllByText("JavaScript");
 
     const searchInput = screen.getByPlaceholderText(
-      "Rechercher un arbre de compétences...",
+      "Rechercher un arbre, un sujet, un tag...",
     );
     fireEvent.change(searchInput, { target: { value: "CI/CD" } });
 
-    expect(screen.getByText("DevOps")).toBeDefined();
+    expect(screen.getAllByText("DevOps").length).toBeGreaterThan(0);
     expect(screen.queryByText("JavaScript")).toBeNull();
     expect(screen.queryByText("Python")).toBeNull();
   });
 
   it("filtre par nom du créateur", async () => {
     renderPage();
-    await screen.findByText("JavaScript");
+    await screen.findAllByText("JavaScript");
 
     const searchInput = screen.getByPlaceholderText(
-      "Rechercher un arbre de compétences...",
+      "Rechercher un arbre, un sujet, un tag...",
     );
     fireEvent.change(searchInput, { target: { value: "bob" } });
 
-    expect(screen.getByText("Python")).toBeDefined();
+    expect(screen.getAllByText("Python").length).toBeGreaterThan(0);
     expect(screen.queryByText("JavaScript")).toBeNull();
     expect(screen.queryByText("DevOps")).toBeNull();
   });
 
   it("affiche un message quand aucun résultat", async () => {
     renderPage();
-    await screen.findByText("JavaScript");
+    await screen.findAllByText("JavaScript");
 
     const searchInput = screen.getByPlaceholderText(
-      "Rechercher un arbre de compétences...",
+      "Rechercher un arbre, un sujet, un tag...",
     );
     fireEvent.change(searchInput, { target: { value: "zzzzz" } });
 
@@ -122,29 +121,29 @@ describe("SkillTreeListPage - Recherche", () => {
 
   it("est insensible à la casse", async () => {
     renderPage();
-    await screen.findByText("JavaScript");
+    await screen.findAllByText("JavaScript");
 
     const searchInput = screen.getByPlaceholderText(
-      "Rechercher un arbre de compétences...",
+      "Rechercher un arbre, un sujet, un tag...",
     );
     fireEvent.change(searchInput, { target: { value: "JAVASCRIPT" } });
 
-    expect(screen.getByText("JavaScript")).toBeDefined();
+    expect(screen.getAllByText("JavaScript").length).toBeGreaterThan(0);
   });
 
   it("réaffiche tous les arbres quand on vide la recherche", async () => {
     renderPage();
-    await screen.findByText("JavaScript");
+    await screen.findAllByText("JavaScript");
 
     const searchInput = screen.getByPlaceholderText(
-      "Rechercher un arbre de compétences...",
+      "Rechercher un arbre, un sujet, un tag...",
     );
     fireEvent.change(searchInput, { target: { value: "python" } });
     expect(screen.queryByText("JavaScript")).toBeNull();
 
     fireEvent.change(searchInput, { target: { value: "" } });
-    expect(screen.getByText("JavaScript")).toBeDefined();
-    expect(screen.getByText("Python")).toBeDefined();
-    expect(screen.getByText("DevOps")).toBeDefined();
+    expect(screen.getAllByText("JavaScript").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Python").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("DevOps").length).toBeGreaterThan(0);
   });
 });

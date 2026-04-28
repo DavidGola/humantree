@@ -29,7 +29,6 @@ interface LinkedTreeNodeData {
   isEditing?: boolean;
 }
 
-/* Custom node: linked sub-tree with tree icon */
 function LinkedTreeNode({ data }: { data: LinkedTreeNodeData }) {
   const showCounter =
     !data.isEditing &&
@@ -41,7 +40,7 @@ function LinkedTreeNode({ data }: { data: LinkedTreeNodeData }) {
       <Handle
         type="target"
         position={Position.Top}
-        style={{ background: "#a78bfa", width: 8, height: 8, border: "none" }}
+        style={{ background: "#40916c", width: 8, height: 8, border: "none" }}
       />
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <svg
@@ -68,7 +67,7 @@ function LinkedTreeNode({ data }: { data: LinkedTreeNodeData }) {
               opacity: 0.85,
               whiteSpace: "nowrap",
               padding: "1px 6px",
-              borderRadius: 6,
+              borderRadius: 4,
               backgroundColor: "rgba(255,255,255,0.2)",
             }}
           >
@@ -79,7 +78,7 @@ function LinkedTreeNode({ data }: { data: LinkedTreeNodeData }) {
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ background: "#a78bfa", width: 8, height: 8, border: "none" }}
+        style={{ background: "#40916c", width: 8, height: 8, border: "none" }}
       />
     </>
   );
@@ -91,7 +90,6 @@ const nodeTypes = {
   linkedTreeNode: LinkedTreeNode,
 };
 
-/* Custom node: skill name + styled checkbox + React Flow handles */
 function CheckSkillNode({ data }: { data: CheckSkillNodeData }) {
   const isChecked =
     data.userDetailSkill?.skill_ids.includes(data.skillId) || false;
@@ -102,7 +100,7 @@ function CheckSkillNode({ data }: { data: CheckSkillNodeData }) {
       <Handle
         type="target"
         position={Position.Top}
-        style={{ background: "#a78bfa", width: 8, height: 8, border: "none" }}
+        style={{ background: "#40916c", width: 8, height: 8, border: "none" }}
       />
 
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -140,14 +138,14 @@ function CheckSkillNode({ data }: { data: CheckSkillNodeData }) {
               justifyContent: "center",
               width: 22,
               height: 22,
-              borderRadius: 6,
+              borderRadius: 5,
               border: isChecked
                 ? "2px solid #22c55e"
                 : isRoot
-                  ? "2px solid rgba(255, 255, 255, 0.5)"
-                  : "2px solid #c4b5fd",
+                  ? "2px solid rgba(255, 255, 255, 0.4)"
+                  : "2px solid #86efac",
               backgroundColor: isChecked ? "#22c55e" : "transparent",
-              transition: "all 250ms ease",
+              transition: "all 200ms ease",
             }}
           >
             {isChecked && (
@@ -171,20 +169,19 @@ function CheckSkillNode({ data }: { data: CheckSkillNodeData }) {
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ background: "#a78bfa", width: 8, height: 8, border: "none" }}
+        style={{ background: "#40916c", width: 8, height: 8, border: "none" }}
       />
     </>
   );
 }
 
-/* Custom node: skill name only + React Flow handles */
 function NoCheckSkillNode({ data }: { data: NoCheckSkillNodeData }) {
   return (
     <>
       <Handle
         type="target"
         position={Position.Top}
-        style={{ background: "#a78bfa", width: 8, height: 8, border: "none" }}
+        style={{ background: "#40916c", width: 8, height: 8, border: "none" }}
       />
 
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -194,7 +191,7 @@ function NoCheckSkillNode({ data }: { data: NoCheckSkillNodeData }) {
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ background: "#a78bfa", width: 8, height: 8, border: "none" }}
+        style={{ background: "#40916c", width: 8, height: 8, border: "none" }}
       />
     </>
   );
@@ -206,9 +203,9 @@ function SkillTreeDetailPage() {
 
   if (loading.isLoading) {
     return (
-      <div className="min-h-screen bg-transparent flex items-center justify-center">
-        <div className="w-6 h-6 border-3 border-primary-600 border-t-transparent rounded-full animate-spin" />
-        <span className="ml-3 text-slate-500 dark:text-slate-400">
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-5 h-5 border-2 border-primary-700 border-t-transparent rounded-full animate-spin" />
+        <span className="ml-3 text-sm text-gray-400 dark:text-slate-500">
           Chargement...
         </span>
       </div>
@@ -217,9 +214,9 @@ function SkillTreeDetailPage() {
 
   if (loading.isError || !tree.skillTree) {
     return (
-      <div className="min-h-screen bg-transparent flex items-center justify-center">
-        <p className="text-lg text-red-500 dark:text-red-400">
-          Erreur lors du chargement de l'arbre de compétences.
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-red-600 dark:text-red-400">
+          Erreur lors du chargement de l'arbre.
         </p>
       </div>
     );
@@ -228,7 +225,6 @@ function SkillTreeDetailPage() {
   const skillTree = tree.skillTree;
   const hasBreadcrumb = linkedTrees.breadcrumb.length > 0;
 
-  // Progress bar data
   const totalSkills = skillTree.skills.filter(s => !s.linked_tree_id).length;
   const checkNode = tree.graphData.nodes.find(n => n.type === "checkSkill");
   const checkedIds: number[] = checkNode ? ((checkNode.data as unknown as CheckSkillNodeData)?.userDetailSkill?.skill_ids ?? []) : [];
@@ -237,10 +233,8 @@ function SkillTreeDetailPage() {
   ).length;
 
   return (
-    <div className="flex flex-col h-screen bg-transparent">
-      {/* Header */}
-      <div className="px-6 py-4 backdrop-blur-md border-b" style={{ backgroundColor: 'var(--surface-hover)', borderColor: 'var(--border-subtle)' }}>
-        {/* Title row */}
+    <div className="flex flex-col h-screen">
+      <div className="px-6 py-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
             {editing.isEditingTitle && tree.isAuthorizedToEdit() ? (
@@ -260,16 +254,16 @@ function SkillTreeDetailPage() {
                       name: e.target.value,
                     })
                   }
-                  className="text-2xl font-display font-bold px-3 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 flex-1 surface-input text-gray-900 dark:text-white"
+                  className="text-xl font-display font-bold px-3 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 flex-1 surface-input text-gray-900 dark:text-white"
                 />
                 <Button variant="primary" type="submit">
                   OK
                 </Button>
               </form>
             ) : (
-              <div className="flex items-center gap-3 mb-1">
+              <div className="flex items-center gap-2 mb-1">
                 <h1
-                  className={`text-2xl font-display font-bold text-gray-900 dark:text-white ${editing.isEditing && tree.isAuthorizedToEdit() ? "cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors" : ""}`}
+                  className={`text-xl font-display font-bold text-gray-900 dark:text-white ${editing.isEditing && tree.isAuthorizedToEdit() ? "cursor-pointer hover:text-primary-700 dark:hover:text-primary-400 transition-colors" : ""}`}
                   onClick={() => {
                     if (editing.isEditing && tree.isAuthorizedToEdit()) editing.setIsEditingTitle(true);
                   }}
@@ -278,10 +272,10 @@ function SkillTreeDetailPage() {
                 </h1>
                 {!editing.isEditing && (
                   <button
-                    className={`text-2xl transition-all duration-200 hover:scale-110 ${
+                    className={`text-lg transition-colors duration-150 ${
                       favoriteTrees.includes(skillTree.id)
-                        ? "text-accent-500 hover:text-accent-600"
-                        : "text-gray-400 dark:text-slate-400 hover:text-accent-500 dark:hover:text-accent-500"
+                        ? "text-amber-500 hover:text-amber-600"
+                        : "text-gray-300 dark:text-slate-600 hover:text-amber-400 dark:hover:text-amber-500"
                     }`}
                     onClick={() => handleFavorite(skillTree.id)}
                     aria-label={
@@ -298,14 +292,13 @@ function SkillTreeDetailPage() {
               </div>
             )}
 
-            {/* Description - click to edit */}
             {editing.isEditingDesc && tree.isAuthorizedToEdit() ? (
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   editing.setIsEditingDesc(false);
                 }}
-                className="flex items-start gap-3 mb-3"
+                className="flex items-start gap-3 mb-2"
               >
                 <textarea
                   value={skillTree.description || ""}
@@ -315,7 +308,7 @@ function SkillTreeDetailPage() {
                       description: e.target.value,
                     })
                   }
-                  className="text-sm px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 flex-1 resize-none surface-input text-gray-600 dark:text-slate-300"
+                  className="text-sm px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 flex-1 resize-none surface-input text-gray-600 dark:text-slate-300"
                   rows={2}
                 />
                 <Button variant="primary" type="submit">
@@ -325,7 +318,7 @@ function SkillTreeDetailPage() {
             ) : (
               <>
                 <p
-                  className={`text-sm text-gray-500 dark:text-slate-400 mb-3 ${editing.isEditing && tree.isAuthorizedToEdit() ? "cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors" : ""}`}
+                  className={`text-sm text-gray-500 dark:text-slate-400 mb-2 ${editing.isEditing && tree.isAuthorizedToEdit() ? "cursor-pointer hover:text-primary-700 dark:hover:text-primary-400 transition-colors" : ""}`}
                   onClick={() => {
                     if (editing.isEditing && tree.isAuthorizedToEdit()) editing.setIsEditingDesc(true);
                   }}
@@ -333,7 +326,6 @@ function SkillTreeDetailPage() {
                   {skillTree.description || "Aucune description"}
                 </p>
 
-                {/* Tags - click to edit */}
                 {editing.isEditingTags && tree.isAuthorizedToEdit() ? (
                   <form
                     onSubmit={(e) => {
@@ -346,8 +338,8 @@ function SkillTreeDetailPage() {
                       type="text"
                       value={editing.tagsInput}
                       onChange={(e) => editing.setTagsInput(e.target.value)}
-                      placeholder="python, web, api (max 10, séparés par des virgules)"
-                      className="text-sm px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 flex-1 surface-input text-gray-600 dark:text-slate-300"
+                      placeholder="python, web, api (max 10)"
+                      className="text-sm px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 flex-1 surface-input text-gray-600 dark:text-slate-300"
                     />
                     <Button variant="primary" type="submit">
                       OK
@@ -355,7 +347,7 @@ function SkillTreeDetailPage() {
                   </form>
                 ) : (
                   <div
-                    className={`flex flex-wrap gap-1.5 mb-2 ${editing.isEditing && tree.isAuthorizedToEdit() ? "cursor-pointer" : ""}`}
+                    className={`flex flex-wrap gap-1 mb-2 ${editing.isEditing && tree.isAuthorizedToEdit() ? "cursor-pointer" : ""}`}
                     onClick={() => {
                       if (editing.isEditing && tree.isAuthorizedToEdit()) editing.startEditingTags();
                     }}
@@ -364,7 +356,7 @@ function SkillTreeDetailPage() {
                       skillTree.tags.map((tag: string) => (
                         <span
                           key={tag}
-                          className="px-2 py-0.5 text-xs rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300"
+                          className="px-2 py-0.5 text-xs rounded border border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-400"
                         >
                           #{tag}
                         </span>
@@ -379,70 +371,51 @@ function SkillTreeDetailPage() {
               </>
             )}
           </div>
-          {/* Creation info */}
-          <div className="text-right shrink-0">
-            <p className="text-xs text-gray-500 dark:text-slate-400">
-              Créé par {skillTree.creator_username}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-slate-400">
-              le {new Date(skillTree.created_at).toLocaleDateString()}
+          <div className="text-right shrink-0 ml-4">
+            <p className="text-xs text-gray-400 dark:text-slate-500">
+              {skillTree.creator_username} · {new Date(skillTree.created_at).toLocaleDateString()}
             </p>
           </div>
         </div>
 
-        {/* Progress bar */}
         {totalSkills > 0 && (
           <div className="mt-2 mb-2">
             <div className="flex items-center gap-3">
-              <div className="flex-1 h-2 rounded-full bg-primary-200/50 dark:bg-slate-700 overflow-hidden">
+              <div className="flex-1 h-1.5 rounded-full bg-primary-100 dark:bg-slate-700 overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-primary-400 to-emerald-400 transition-all duration-500"
+                  className="h-full rounded-full bg-primary-500 transition-all duration-500"
                   style={{ width: `${Math.round((checkedSkills / totalSkills) * 100)}%` }}
                 />
               </div>
-              <span className="text-xs font-display font-semibold text-gray-500 dark:text-slate-400 whitespace-nowrap">
+              <span className="text-xs font-medium text-gray-500 dark:text-slate-400 whitespace-nowrap">
                 {checkedSkills}/{totalSkills}
               </span>
             </div>
           </div>
         )}
 
-        {/* Action bar */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-wrap">
             {tree.isAuthorizedToEdit() && (
-              <button
+              <Button
                 onClick={editing.handleEditButton}
-                className={`px-3 py-1.5 text-sm font-display font-semibold rounded-lg transition-colors duration-200 ${
-                  editing.isEditing
-                    ? "text-gray-600 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600"
-                    : "text-primary-700 dark:text-primary-300 bg-primary-200/40 dark:bg-primary-900/20 hover:bg-primary-200/60 dark:hover:bg-primary-900/40"
-                }`}
+                variant={editing.isEditing ? "secondary" : "primary"}
               >
                 {editing.isEditing ? "Terminer" : "Éditer"}
-              </button>
+              </Button>
             )}
 
             {editing.isEditing && tree.isAuthorizedToEdit() && (
               <>
-                <button
-                  onClick={() => skills.setCreateSkillModalOpen(true)}
-                  className="px-3 py-1.5 text-sm font-display font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors duration-200"
-                >
+                <Button variant="primary" onClick={() => skills.setCreateSkillModalOpen(true)}>
                   + Compétence
-                </button>
-                <button
-                  onClick={() => linkedTrees.setCreateSubTreeModalOpen(true)}
-                  className="px-3 py-1.5 text-sm font-display font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors duration-200"
-                >
+                </Button>
+                <Button variant="primary" onClick={() => linkedTrees.setCreateSubTreeModalOpen(true)}>
                   + Sous-arbre
-                </button>
-                <button
-                  onClick={() => linkedTrees.setLinkTreeModalOpen(true)}
-                  className="px-3 py-1.5 text-sm font-display font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors duration-200"
-                >
+                </Button>
+                <Button variant="primary" onClick={() => linkedTrees.setLinkTreeModalOpen(true)}>
                   Lier un arbre
-                </button>
+                </Button>
                 <Button variant="success" onClick={editing.handleSaveToBackend} disabled={editing.isSaving}>
                   {editing.isSaving ? "Sauvegarde..." : "Sauvegarder"}
                 </Button>
@@ -451,28 +424,24 @@ function SkillTreeDetailPage() {
                     Modifications non sauvegardées
                   </span>
                 )}
-                <button
-                  onClick={() => deleteTree.setIsModalDeleteOpen(true)}
-                  className="px-3 py-1.5 text-sm font-display font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors duration-200"
-                >
+                <Button variant="danger" onClick={() => deleteTree.setIsModalDeleteOpen(true)}>
                   Supprimer
-                </button>
+                </Button>
               </>
             )}
           </div>
         </div>
       </div>
 
-      {/* Breadcrumb */}
       {hasBreadcrumb && (
-        <div className="px-6 py-2 bg-primary-50/50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-slate-700">
+        <div className="px-6 py-2 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
           <div className="flex items-center gap-1 text-sm">
             {linkedTrees.breadcrumb.map((item, index) => (
               <span key={item.id} className="flex items-center gap-1">
                 {index > 0 && <span className="text-gray-400 dark:text-slate-500">/</span>}
                 <button
                   onClick={() => linkedTrees.navigateBack(index)}
-                  className="text-primary-600 dark:text-primary-400 hover:underline"
+                  className="text-primary-700 dark:text-primary-400 hover:underline"
                 >
                   {item.name}
                 </button>
@@ -486,13 +455,12 @@ function SkillTreeDetailPage() {
         </div>
       )}
 
-      {/* React Flow zone with dot pattern background */}
       <div className="flex-1 relative">
         <div
-          className="absolute inset-0 opacity-30 dark:opacity-20 pointer-events-none"
+          className="absolute inset-0 opacity-20 dark:opacity-10 pointer-events-none"
           style={{
-            backgroundImage: "radial-gradient(circle, #c4b5fd 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
+            backgroundImage: "radial-gradient(circle, #40916c 0.8px, transparent 0.8px)",
+            backgroundSize: "20px 20px",
           }}
         />
         <ReactFlow
@@ -527,12 +495,11 @@ function SkillTreeDetailPage() {
           fitView
           proOptions={{ hideAttribution: true }}
           defaultEdgeOptions={{
-            style: { stroke: "#ddd6fe", strokeWidth: 2 },
+            style: { stroke: "#86efac", strokeWidth: 2 },
           }}
         />
       </div>
 
-      {/* Modal : ouverture d'une compétence */}
       {selection.selectedSkill && (
         <SkillDetailModal
           skill={selection.selectedSkill}
@@ -545,7 +512,6 @@ function SkillTreeDetailPage() {
         />
       )}
 
-      {/* Modal : créer une compétence */}
       {skills.createSkillModalOpen && (
         <Modal
           onClose={() => {
@@ -553,32 +519,32 @@ function SkillTreeDetailPage() {
             skills.setNewSkillName("");
             skills.setNewSkillDescription("");
           }}
-          title="Créer une nouvelle compétence"
+          title="Créer une compétence"
         >
-          <form onSubmit={skills.handleCreateSkill} className="space-y-5">
+          <form onSubmit={skills.handleCreateSkill} className="space-y-4">
             <div>
-              <label className="block text-sm font-display font-semibold mb-1.5 text-gray-700 dark:text-slate-300">
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300">
                 Nom
               </label>
               <input
                 type="text"
                 value={skills.newSkillName}
                 onChange={(e) => skills.setNewSkillName(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm rounded-lg surface-input focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
+                className="w-full px-3 py-2 text-sm rounded-lg surface-input focus:outline-none focus:ring-2 focus:ring-primary-600 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-display font-semibold mb-1.5 text-gray-700 dark:text-slate-300">
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300">
                 Description
               </label>
               <textarea
                 value={skills.newSkillDescription}
                 onChange={(e) => skills.setNewSkillDescription(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm rounded-lg surface-input focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
+                className="w-full px-3 py-2 text-sm rounded-lg surface-input focus:outline-none focus:ring-2 focus:ring-primary-600 resize-none text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
                 rows={3}
               />
             </div>
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex justify-end gap-2 pt-2">
               <Button variant="secondary" onClick={() => skills.setCreateSkillModalOpen(false)}>
                 Annuler
               </Button>
@@ -590,7 +556,6 @@ function SkillTreeDetailPage() {
         </Modal>
       )}
 
-      {/* Modal : créer un sous-arbre */}
       {linkedTrees.createSubTreeModalOpen && (
         <Modal
           onClose={() => {
@@ -600,30 +565,30 @@ function SkillTreeDetailPage() {
           }}
           title="Créer un sous-arbre"
         >
-          <form onSubmit={linkedTrees.handleCreateSubTree} className="space-y-5">
+          <form onSubmit={linkedTrees.handleCreateSubTree} className="space-y-4">
             <div>
-              <label className="block text-sm font-display font-semibold mb-1.5 text-gray-700 dark:text-slate-300">
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300">
                 Nom du sous-arbre
               </label>
               <input
                 type="text"
                 value={linkedTrees.newSubTreeName}
                 onChange={(e) => linkedTrees.setNewSubTreeName(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm rounded-lg surface-input focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
+                className="w-full px-3 py-2 text-sm rounded-lg surface-input focus:outline-none focus:ring-2 focus:ring-primary-600 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-display font-semibold mb-1.5 text-gray-700 dark:text-slate-300">
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300">
                 Description
               </label>
               <textarea
                 value={linkedTrees.newSubTreeDescription}
                 onChange={(e) => linkedTrees.setNewSubTreeDescription(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm rounded-lg surface-input focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
+                className="w-full px-3 py-2 text-sm rounded-lg surface-input focus:outline-none focus:ring-2 focus:ring-primary-600 resize-none text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
                 rows={3}
               />
             </div>
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex justify-end gap-2 pt-2">
               <Button variant="secondary" onClick={() => linkedTrees.setCreateSubTreeModalOpen(false)}>
                 Annuler
               </Button>
@@ -635,7 +600,6 @@ function SkillTreeDetailPage() {
         </Modal>
       )}
 
-      {/* Modal : lier un arbre */}
       {linkedTrees.linkTreeModalOpen && (
         <LinkTreeModal
           onSelect={linkedTrees.handleLinkTree}
@@ -647,7 +611,6 @@ function SkillTreeDetailPage() {
         />
       )}
 
-      {/* Modal : confirmer suppression de l'arbre */}
       {deleteTree.isModalDeleteOpen && (
         <Modal
           onClose={() => deleteTree.setIsModalDeleteOpen(false)}
@@ -671,7 +634,6 @@ function SkillTreeDetailPage() {
         </Modal>
       )}
 
-      {/* Modal : confirmer sortie du mode édition */}
       {unsavedGuard.showExitEditModal && (
         <Modal
           onClose={() => unsavedGuard.setShowExitEditModal(false)}
@@ -689,13 +651,12 @@ function SkillTreeDetailPage() {
               Continuer l'édition
             </Button>
             <Button variant="danger" onClick={unsavedGuard.discardChanges}>
-              Abandonner les modifications
+              Abandonner
             </Button>
           </div>
         </Modal>
       )}
 
-      {/* Modal : bloquer la navigation */}
       {unsavedGuard.blocker.state === "blocked" && (
         <Modal
           onClose={() => unsavedGuard.blocker.reset?.()}

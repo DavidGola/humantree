@@ -2,7 +2,6 @@
 
 import logging
 
-from fastapi import HTTPException
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +15,7 @@ from app.schemas.skill import (
     SkillSimpleSchema,
     SkillUpdateSchema,
 )
+from app.services._integrity import parse_integrity_error
 
 logger = logging.getLogger(__name__)
 
@@ -53,19 +53,11 @@ async def create_skill(db: AsyncSession, data: SkillCreateSchema) -> SkillSimple
         await db.commit()
     except IntegrityError as e:
         await db.rollback()
-        error_msg = str(e.orig).lower() if e.orig else str(e).lower()
-        if "unique" in error_msg or "duplicate" in error_msg:
-            raise HTTPException(
-                status_code=409,
-                detail="Un skill avec ce nom existe déjà dans cet arbre",
-            )
-        if "foreign key" in error_msg or "is not present in table" in error_msg:
-            raise HTTPException(
-                status_code=400,
-                detail="Skill tree introuvable",
-            )
-        logger.error("IntegrityError inattendue dans create_skill: %s", e.orig)
-        raise HTTPException(status_code=400, detail="Erreur d'intégrité des données")
+        raise parse_integrity_error(
+            e,
+            duplicate_detail="Un skill avec ce nom existe déjà dans cet arbre",
+            fk_detail="Skill tree introuvable",
+        ) from e
 
     await db.refresh(new_skill)
     return SkillSimpleSchema.model_validate(new_skill)
@@ -120,14 +112,10 @@ async def create_skill_dependencies(db: AsyncSession, id: int, unlock_ids: list[
         await db.flush()
     except IntegrityError as e:
         await db.rollback()
-        error_msg = str(e.orig).lower() if e.orig else str(e).lower()
-        if "foreign key" in error_msg or "is not present in table" in error_msg:
-            raise HTTPException(
-                status_code=400,
-                detail="Skill référencé dans unlock_ids introuvable",
-            )
-        logger.error("IntegrityError inattendue dans create_skill_dependencies: %s", e.orig)
-        raise HTTPException(status_code=400, detail="Erreur d'intégrité des données")
+        raise parse_integrity_error(
+            e,
+            fk_detail="Skill référencé dans unlock_ids introuvable",
+        ) from e
 
 
 async def delete_all_dependencies_for_skill(db: AsyncSession, skill_id: int) -> bool:

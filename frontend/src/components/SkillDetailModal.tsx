@@ -104,7 +104,7 @@ export const SkillDetailModal = ({
               type="text"
               value={editedName}
               onChange={(e) => setEditedName(e.target.value)}
-              className="w-full px-4 py-3 text-lg font-semibold rounded-xl border-2 border-gray-100 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-100 dark:focus:ring-primary-900/30 transition-all shadow-sm"
+              className="w-full px-4 py-3 text-lg font-semibold rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:focus:ring-primary-900/30 transition-colors"
               placeholder="Ex: Apprendre les bases de Python"
             />
           ) : (
@@ -125,7 +125,7 @@ export const SkillDetailModal = ({
                 type="button"
                 onClick={handleEnrich}
                 disabled={isEnriching || !editedName.trim()}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 text-primary-700 dark:text-primary-300 bg-white dark:bg-slate-800 border border-primary-200 dark:border-primary-800 hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:border-primary-300 dark:hover:border-primary-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors duration-150 text-primary-700 dark:text-primary-400 bg-white dark:bg-slate-800 border border-primary-200 dark:border-primary-800 hover:bg-primary-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isEnriching ? (
                   <>
@@ -151,7 +151,7 @@ export const SkillDetailModal = ({
           </p>
 
           {streamingContent !== null ? (
-            <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border-2 border-primary-200 dark:border-primary-700 bg-white dark:bg-slate-800 shadow-sm p-4 text-sm text-gray-800 dark:text-white [&_h3]:font-semibold [&_h3]:text-base [&_h3]:mt-4 [&_h3]:mb-1 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1">
+            <div className="flex-1 min-h-0 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-4 text-sm text-gray-800 dark:text-white [&_h3]:font-semibold [&_h3]:text-base [&_h3]:mt-4 [&_h3]:mb-1 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1">
               {streamingContent ? (
                 <div dangerouslySetInnerHTML={{ __html: streamingContent }} />
               ) : (
@@ -161,7 +161,7 @@ export const SkillDetailModal = ({
               )}
             </div>
           ) : (
-            <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border-2 border-gray-100 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm">
+            <div className="flex-1 min-h-0 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800">
               <RichTextEditor
                 content={editedDescription}
                 onChange={setEditedDescription}
@@ -174,7 +174,7 @@ export const SkillDetailModal = ({
 
         {/* Footer */}
         {isEditing ? (
-          <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100 dark:border-slate-700">
+          <div className="flex items-center justify-between pt-4 mt-4 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
             <button
               type="button"
               onClick={() => onDelete(skill.id)}
@@ -192,7 +192,7 @@ export const SkillDetailModal = ({
             </div>
           </div>
         ) : (
-          <div className="flex justify-end pt-4 mt-4 border-t border-gray-100 dark:border-slate-700">
+          <div className="flex justify-end pt-4 mt-4 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
             <Button variant="secondary" onClick={onClose}>
               Fermer
             </Button>

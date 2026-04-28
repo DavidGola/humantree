@@ -41,7 +41,7 @@ describe("Button", () => {
   it("applique le style primary", () => {
     render(<Button variant="primary">Primary</Button>);
     const btn = screen.getByRole("button");
-    expect(btn.className).toContain("bg-primary-600");
+    expect(btn.className).toContain("bg-primary-700");
   });
 
   it("applique le style danger", () => {
@@ -53,12 +53,12 @@ describe("Button", () => {
   it("applique le style secondary", () => {
     render(<Button variant="secondary">Cancel</Button>);
     const btn = screen.getByRole("button");
-    expect(btn.className).toContain("bg-gray-100");
+    expect(btn.className).toContain("bg-transparent");
   });
 
   it("applique le style success", () => {
     render(<Button variant="success">Save</Button>);
     const btn = screen.getByRole("button");
-    expect(btn.className).toContain("bg-emerald-500");
+    expect(btn.className).toContain("bg-emerald-600");
   });
 });
