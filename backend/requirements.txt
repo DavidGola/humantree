@@ -29,7 +29,7 @@ fastapi==0.136.1
 filelock==3.29.0
 frozenlist==1.8.0
 fsspec==2026.4.0
-google-auth==2.52.0
+google-auth==2.53.0
 google-genai==1.75.0
 googleapis-common-protos==1.75.0
 greenlet==3.5.0
